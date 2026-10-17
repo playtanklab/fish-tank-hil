@@ -1,0 +1,10 @@
+I (577) efuse_init: Max chip rev:     v3.99 
+I (2191) Ch370Bus: ch370 bus task started
+I (2225) UsbTreeCh370: RAM loopback OK (8 bytes)
+I (2225) UsbTreeCh370: CH370 online (SYS_INFO=0xd9), 24MHz osc running
+I (2225) UsbTreeCh370: CH370 根口 attach: -1 -> 1 (插入)
+I (2267) UsbTreeCh370: CH370 根口设备: addr=1 1a86:809e <HUB> 'USB2.0 HUB'
+I (2497) UsbTreeCh370:   hub#1 端口6: addr=2 1a86:809e <HUB> 'USB2.0 HUB'
+I (2763) UsbTreeCh370:   hub#1 端口7: addr=3 1a86:809e <HUB> 'USB2.0 HUB'
+I (5136) UsbTreeCh370: 热插入: hub#2 端口2 → addr=4 2402:5605 'SPOTLIGHT'
+I (5464) UsbTreeCh370: 热插入: hub#3 端口2 → addr=5 2402:5601 'PUMP-CHAMBER'

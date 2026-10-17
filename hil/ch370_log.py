@@ -1,0 +1,148 @@
+"""从 P4 串口日志还原 CH370 那棵 USB 树。
+
+只依赖固件 `usb_tree_ch370.cc` 现有的日志格式（fish-tank-esp32 main@cb539d0f）。
+日志里的 ``hub#N`` 是该 hub 的 USB 地址，所以能把每个设备还原成端口路径：
+根口设备是 ``root``，挂在根 hub 端口 6 上的是 ``root.6``，再往下是 ``root.6.2``。
+固件改了日志格式，这里要一起改，测试夹具来自实机抓取。
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+LOG = re.compile(r"^[IWEDV] \((\d+)\) ([^:]+): (.*)$")
+DEV = r"addr=(\d+) ([0-9a-f]{4}):([0-9a-f]{4}) (<HUB> )?'(.*)'"
+RE_ONLINE = re.compile(r"^CH370 online")
+RE_ROOT_DEV = re.compile(r"^CH370 根口设备: " + DEV)
+RE_COLD = re.compile(r"^\s*hub#(\d+) 端口(\d+): " + DEV)
+RE_HOT = re.compile(r"^热插入: hub#(\d+) 端口(\d+) → " + DEV)
+RE_UNPLUG = re.compile(r"^热拔出: hub#(\d+) 端口(\d+)")
+RE_LATCH = re.compile(r"^hub#(\d+) 端口(\d+) 变化锁存.*先摘除原设备")
+RE_HUB_DEAD = re.compile(r"^hub#(\d+) 连续 \d+ 轮全端口读失败")
+RE_ROOT_GONE = re.compile(r"^CH370 根口 attach: \d+ -> 0|全量重建")
+RE_ENUM_FAIL = re.compile(r"^hub#(\d+) 端口(\d+) 复位/枚举失败")
+RE_ROOT_FAIL = re.compile(r"^根口(设备)?枚举失败")
+RE_ROM = re.compile(r"ESP-ROM:|rst:0x[0-9a-f]+")
+
+
+@dataclass
+class Device:
+    path: str
+    addr: int
+    vidpid: str
+    name: str
+    is_hub: bool
+    seen_ms: int
+    how: str  # "cold" 冷枚举 / "hot" 增量扫描补上
+
+
+@dataclass
+class Ch370Tree:
+    devices: dict[str, Device] = field(default_factory=dict)  # path -> Device
+    online_ms: int | None = None
+    first_ms: int | None = None
+    last_ms: int | None = None
+    enum_fail_lines: int = 0
+    resets: list[str] = field(default_factory=list)  # 抓取中途出现的复位迹象
+    _addr_path: dict[int, str] = field(default_factory=dict)
+    _partial: bytes = b""
+
+    # ---- 输入 ----
+
+    def feed(self, data: bytes) -> None:
+        # 串口一次读到的数据可能切在中文字符中间，凑满一行再解码
+        *lines, self._partial = (self._partial + data).split(b"\n")
+        for line in lines:
+            self.feed_line(line.decode("utf-8", errors="replace"))
+
+    def feed_line(self, raw: str) -> None:
+        line = ANSI.sub("", raw).rstrip("\r")
+        if RE_ROM.search(line):
+            if self.first_ms is not None:
+                self.resets.append(line.strip())
+            return
+        m = LOG.match(line)
+        if not m:
+            return
+        ms, msg = int(m.group(1)), m.group(3)
+        if self.last_ms is not None and ms < self.last_ms:
+            self.resets.append(f"时间戳回退 {self.last_ms} -> {ms}")
+        if self.first_ms is None:
+            self.first_ms = ms
+        self.last_ms = ms
+        if m.group(2) != "UsbTreeCh370":
+            return
+        self._usb_tree(ms, msg)
+
+    def _usb_tree(self, ms: int, msg: str) -> None:
+        if RE_ONLINE.match(msg):
+            if self.online_ms is None:
+                self.online_ms = ms
+            return
+        if RE_ROOT_GONE.search(msg):
+            self.devices.clear()
+            self._addr_path.clear()
+            return
+        if m := RE_ROOT_DEV.match(msg):
+            self.devices.clear()
+            self._addr_path.clear()
+            self._add("root", m.groups(), ms, "cold")
+            return
+        if m := RE_COLD.match(msg):
+            self._add_child(int(m.group(1)), m.group(2), m.groups()[2:], ms, "cold")
+            return
+        if m := RE_HOT.match(msg):
+            self._add_child(int(m.group(1)), m.group(2), m.groups()[2:], ms, "hot")
+            return
+        if m := (RE_UNPLUG.match(msg) or RE_LATCH.match(msg)):
+            parent = self._addr_path.get(int(m.group(1)))
+            if parent:
+                self._remove(f"{parent}.{m.group(2)}")
+            return
+        if m := RE_HUB_DEAD.match(msg):
+            path = self._addr_path.get(int(m.group(1)))
+            if path:
+                self._remove(path)
+            return
+        if RE_ENUM_FAIL.match(msg) or RE_ROOT_FAIL.match(msg):
+            self.enum_fail_lines += 1
+
+    def _add_child(self, hub_addr: int, port: str, groups, ms: int, how: str) -> None:
+        parent = self._addr_path.get(hub_addr, f"?hub{hub_addr}")
+        self._add(f"{parent}.{port}", groups, ms, how)
+
+    def _add(self, path: str, groups, ms: int, how: str) -> None:
+        addr, vid, pid, hub, name = groups
+        self._remove(path)
+        dev = Device(path, int(addr), f"{vid}:{pid}", name, hub is not None, ms, how)
+        self.devices[path] = dev
+        self._addr_path[dev.addr] = path
+
+    def _remove(self, path: str) -> None:
+        for p in [p for p in self.devices if p == path or p.startswith(path + ".")]:
+            dev = self.devices.pop(p)
+            if self._addr_path.get(dev.addr) == p:
+                del self._addr_path[dev.addr]
+
+
+@dataclass(frozen=True)
+class Expected:
+    path: str
+    vidpid: str
+    name: str = ""
+
+
+def compare(tree: Ch370Tree, expected: list[Expected]):
+    """返回 (缺失的期望设备, 多出来的设备, 期望设备里最后一个出现的时刻 ms)。"""
+    missing, last_ms = [], None
+    for e in expected:
+        dev = tree.devices.get(e.path)
+        if dev is None or dev.vidpid != e.vidpid:
+            missing.append(e)
+        elif last_ms is None or dev.seen_ms > last_ms:
+            last_ms = dev.seen_ms
+    want = {e.path for e in expected}
+    extra = [d for p, d in tree.devices.items() if p not in want]
+    return missing, extra, last_ms
