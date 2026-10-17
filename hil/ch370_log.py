@@ -25,6 +25,7 @@ RE_ROOT_GONE = re.compile(r"^CH370 根口 attach: \d+ -> 0|全量重建")
 RE_ENUM_FAIL = re.compile(r"^hub#(\d+) 端口(\d+) 复位/枚举失败")
 RE_ROOT_FAIL = re.compile(r"^根口(设备)?枚举失败")
 RE_ROM = re.compile(r"ESP-ROM:|rst:0x[0-9a-f]+")
+RESET_DROP_MS = 1000
 
 
 @dataclass
@@ -67,11 +68,13 @@ class Ch370Tree:
         if not m:
             return
         ms, msg = int(m.group(1)), m.group(3)
-        if self.last_ms is not None and ms < self.last_ms:
+        # 不同任务的日志先取时间戳再排队打印，几毫秒的回退是正常交错；
+        # 只有回退超过 RESET_DROP_MS 才当作重新开机
+        if self.last_ms is not None and ms < self.last_ms - RESET_DROP_MS:
             self.resets.append(f"时间戳回退 {self.last_ms} -> {ms}")
         if self.first_ms is None:
             self.first_ms = ms
-        self.last_ms = ms
+        self.last_ms = ms if self.last_ms is None else max(self.last_ms, ms)
         if m.group(2) != "UsbTreeCh370":
             return
         self._usb_tree(ms, msg)

@@ -70,6 +70,18 @@ class Ch370LogTest(unittest.TestCase):
         # 串口打开得够早、开头就是 ROM 横幅，不算复位
         self.assertFalse(tree_from("ESP-ROM:esp32p4\n" + FIXTURE.read_text()).resets)
 
+    def test_interleaved_task_logs_are_not_reset(self):
+        # 2026-10-17 第 36 轮实机日志：不同任务的日志先取时间戳再打印，出现 3ms 回退
+        text = (
+            "I (2752) transport: Attempt connection with slave: retry[0]\n"
+            "W (2759) H_SDIO_DRV: Reset slave using GPIO[54]\n"
+            "I (2762) os_wrapper_esp: GPIO [54] configured\n"
+            "I (2759) UsbTreeCh370:   hub#1 端口7: addr=3 1a86:809e <HUB> 'USB2.0 HUB'\n"
+        )
+        tree = tree_from(text)
+        self.assertEqual(tree.resets, [])
+        self.assertEqual(tree.last_ms, 2762)
+
     def test_ansi_colors_stripped(self):
         text = "".join(f"\x1b[0;32m{l}\x1b[0m\n" for l in FIXTURE.read_text().splitlines())
         missing, _, _ = compare(tree_from(text), EXPECTED)
