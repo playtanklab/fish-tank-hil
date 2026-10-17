@@ -156,6 +156,44 @@ def run_round(psu: ZebraPsu, bench: Bench, t: Timing, log_path: Path) -> dict:
     return {**row, "result": "usb_missing", "detail": late}
 
 
+def discover(psu_port: str, console_port: str, quiet_ms: int = 10_000, limit_ms: int = 60_000):
+    """断电上电一次，抓到拓扑连续 quiet_ms 没有变化为止，返回 (Ch370Tree, 原始日志)。"""
+    psu = ZebraPsu.open(psu_port)
+    try:
+        psu.refresh_output_state()
+        psu.set_output(False)
+        time.sleep(Timing.off_s)
+        psu.set_output(True)
+        t_on = time.monotonic()
+        while not os.path.exists(console_port):
+            if time.monotonic() - t_on > Timing.tty_timeout_s:
+                raise SystemExit("上电后 P4 串口没出现")
+            time.sleep(0.005)
+        con = _open_console(console_port, 2.0)
+        tree, raw = Ch370Tree(), bytearray()
+        snapshot, changed_ms = None, None
+        try:
+            while time.monotonic() - t_on < limit_ms / 1000 + 5:
+                chunk = con.read(4096)
+                if chunk:
+                    raw += chunk
+                    tree.feed(chunk)
+                if tree.online_ms is None or tree.last_ms is None:
+                    continue
+                now = sorted((p, d.vidpid) for p, d in tree.devices.items())
+                if now != snapshot:
+                    snapshot, changed_ms = now, tree.last_ms
+                if tree.last_ms - changed_ms >= quiet_ms or tree.last_ms - tree.online_ms >= limit_ms:
+                    break
+        finally:
+            con.close()
+        return tree, bytes(raw)
+    finally:
+        if psu.output_on is not True:
+            psu.set_output(True)
+        psu.close()
+
+
 def run(bench: Bench, rounds: int, out_dir: Path, t: Timing, keep_all_logs: bool) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "logs").mkdir(exist_ok=True)

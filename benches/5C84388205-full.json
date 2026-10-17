@@ -1,0 +1,78 @@
+{
+  "name": "5C84388205 满载 11 模块",
+  "psu_port": "/dev/serial/by-id/usb-1a86_USB_UART-LPT-if00-port0",
+  "console_port": "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5C84388205-if00",
+  "volt": 5.0,
+  "devices": [
+    {
+      "path": "root",
+      "vidpid": "1a86:809e",
+      "name": "USB2.0 HUB"
+    },
+    {
+      "path": "root.4",
+      "vidpid": "2402:5611",
+      "name": "WAVE-MAKER"
+    },
+    {
+      "path": "root.5",
+      "vidpid": "2402:5607",
+      "name": "FOREGROUND-LIGHT-24"
+    },
+    {
+      "path": "root.6",
+      "vidpid": "1a86:809e",
+      "name": ""
+    },
+    {
+      "path": "root.6.2",
+      "vidpid": "2402:5605",
+      "name": "SPOTLIGHT"
+    },
+    {
+      "path": "root.6.3",
+      "vidpid": "2402:560d",
+      "name": "INTAKE-FAN"
+    },
+    {
+      "path": "root.6.4",
+      "vidpid": "2402:560b",
+      "name": "MAIN-LIGHT-4K5K"
+    },
+    {
+      "path": "root.6.5",
+      "vidpid": "2402:5605",
+      "name": "SPOTLIGHT"
+    },
+    {
+      "path": "root.6.6",
+      "vidpid": "2402:5612",
+      "name": "NUTRIENT-DOSER"
+    },
+    {
+      "path": "root.6.7",
+      "vidpid": "2402:5605",
+      "name": "SPOTLIGHT"
+    },
+    {
+      "path": "root.7",
+      "vidpid": "1a86:809e",
+      "name": "USB2.0 HUB"
+    },
+    {
+      "path": "root.7.2",
+      "vidpid": "2402:5601",
+      "name": "PUMP-CHAMBER"
+    },
+    {
+      "path": "root.7.4",
+      "vidpid": "2402:560a",
+      "name": "MAIN-LIGHT-3K6K"
+    },
+    {
+      "path": "root.7.6",
+      "vidpid": "2402:5602",
+      "name": "WATER-CHANGER"
+    }
+  ]
+}

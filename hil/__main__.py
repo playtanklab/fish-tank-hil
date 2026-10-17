@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 from datetime import datetime
 from pathlib import Path
 
-from .runner import Bench, Timing, run
+from .runner import Bench, Timing, discover, run
 from .summary import summarize
 from .zebra_psu import ZebraPsu
 
@@ -44,6 +45,28 @@ def cmd_run(args) -> None:
     print(text)
 
 
+def cmd_discover(args) -> None:
+    tree, raw = discover(args.psu_port, args.console_port)
+    log = Path(args.out) / f"{datetime.now():%Y%m%d-%H%M%S}-discover.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_bytes(raw)
+    devs = sorted(tree.devices.values(), key=lambda d: [int(x) if x.isdigit() else -1
+                                                         for x in d.path.split(".")])
+    for d in devs:
+        print(f"{d.path:<12} {d.vidpid}  {'HUB ' if d.is_hub else '    '}{d.name:<20} "
+              f"{d.how:<4} {d.seen_ms - tree.online_ms:>6}ms")
+    print(f"共 {len(devs)} 个设备；枚举失败日志 {tree.enum_fail_lines} 行；原始日志 {log}")
+    if args.write:
+        bench = {
+            "name": args.name, "psu_port": args.psu_port, "console_port": args.console_port,
+            "volt": args.volt,
+            "devices": [{"path": d.path, "vidpid": d.vidpid, "name": d.name} for d in devs],
+        }
+        Path(args.write).write_text(json.dumps(bench, ensure_ascii=False, indent=2) + "\n",
+                                    encoding="utf-8")
+        print(f"已写台架文件 {args.write}，请核对设备清单")
+
+
 def main() -> None:
     p = argparse.ArgumentParser(prog="hil", description="CH370 USB 断电台")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -64,6 +87,15 @@ def main() -> None:
     sr.add_argument("--out", default="results")
     sr.add_argument("--keep-all-logs", action="store_true", help="通过的轮次也保留日志")
     sr.set_defaults(func=cmd_run)
+
+    sd = sub.add_parser("discover", help="断电上电一次，抓当前拓扑，可写成台架文件")
+    sd.add_argument("--psu-port", required=True)
+    sd.add_argument("--console-port", required=True)
+    sd.add_argument("--volt", type=float, default=5.0)
+    sd.add_argument("--name", default="")
+    sd.add_argument("--write", help="写出的台架文件路径")
+    sd.add_argument("--out", default="results")
+    sd.set_defaults(func=cmd_discover)
 
     ss = sub.add_parser("summary", help="重新汇总一次运行")
     ss.add_argument("dir")
