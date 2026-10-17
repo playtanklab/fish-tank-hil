@@ -24,6 +24,12 @@ RE_HUB_DEAD = re.compile(r"^hub#(\d+) 连续 \d+ 轮全端口读失败")
 RE_ROOT_GONE = re.compile(r"^CH370 根口 attach: \d+ -> 0|全量重建")
 RE_ENUM_FAIL = re.compile(r"^hub#(\d+) 端口(\d+) 复位/枚举失败")
 RE_ROOT_FAIL = re.compile(r"^根口(设备)?枚举失败")
+RE_DIAG_FAIL = re.compile(
+    r"^enum_fail (\w+) path=(\S+) hub#(\d+) p(\d+) try=(\d+) step=(\w+) stage=(\S) "
+    r"resp=(-?\d+) naks=(\d+) tog=(\d+) pst=0x([0-9a-f]+)")
+RE_DIAG_WARN = re.compile(r"^enum_warn path=(\S+) (.*)$")
+RE_HUB_INFO = re.compile(
+    r"^hub path=(\S+) nports=(\d+) chars=0x([0-9a-f]+) power=(\S+) pwrgood=(\d+)ms")
 RE_ROM = re.compile(r"ESP-ROM:|rst:0x[0-9a-f]+")
 RESET_DROP_MS = 1000
 
@@ -46,6 +52,9 @@ class Ch370Tree:
     first_ms: int | None = None
     last_ms: int | None = None
     enum_fail_lines: int = 0
+    diag_fails: list[dict] = field(default_factory=list)  # 固件 P0 起的结构化 enum_fail 行
+    diag_warns: list[str] = field(default_factory=list)
+    hubs: dict[str, dict] = field(default_factory=dict)   # 路径 → nports/power/pwrgood
     resets: list[str] = field(default_factory=list)  # 抓取中途出现的复位迹象
     _addr_path: dict[int, str] = field(default_factory=dict)
     _partial: bytes = b""
@@ -111,6 +120,20 @@ class Ch370Tree:
             return
         if RE_ENUM_FAIL.match(msg) or RE_ROOT_FAIL.match(msg):
             self.enum_fail_lines += 1
+            return
+        if m := RE_DIAG_FAIL.match(msg):
+            keys = ("phase", "path", "hub", "port", "try", "step", "stage", "resp", "naks", "tog")
+            d = dict(zip(keys, m.groups()[:10]))
+            d["pst"] = int(m.group(11), 16)
+            d["ms"] = ms
+            self.diag_fails.append(d)
+            return
+        if m := RE_DIAG_WARN.match(msg):
+            self.diag_warns.append(f"{m.group(1)} {m.group(2)}")
+            return
+        if m := RE_HUB_INFO.match(msg):
+            self.hubs[m.group(1)] = {"nports": int(m.group(2)), "chars": int(m.group(3), 16),
+                                     "power": m.group(4), "pwrgood_ms": int(m.group(5))}
 
     def _add_child(self, hub_addr: int, port: str, groups, ms: int, how: str) -> None:
         parent = self._addr_path.get(hub_addr, f"?hub{hub_addr}")

@@ -24,7 +24,8 @@ from .zebra_psu import PsuShutdown, ZebraPsu
 
 CSV_FIELDS = [
     "round", "started", "result", "detail", "online_ms", "converge_ms", "first_log_ms",
-    "tty_s", "cold", "hot", "enum_fail_lines", "missing", "extra", "volt", "amp", "log",
+    "tty_s", "cold", "hot", "enum_fail_lines", "fails", "warns", "missing", "extra", "volt",
+    "amp", "log",
 ]
 
 
@@ -129,6 +130,9 @@ def run_round(psu: ZebraPsu, bench: Bench, t: Timing, log_path: Path) -> dict:
         online_ms=tree.online_ms, first_log_ms=tree.first_ms,
         cold=sum(d.how == "cold" for d in devs), hot=sum(d.how == "hot" for d in devs),
         enum_fail_lines=tree.enum_fail_lines,
+        fails=";".join(f"{f['phase']}:{f['path']}:{f['step']}:{f['stage']}{f['resp']}"
+                       f":n{f['naks']}:t{f['tog']}" for f in tree.diag_fails[:8]),
+        warns=";".join(tree.diag_warns[:4]),
         missing=";".join(f"{e.path}={e.vidpid}" for e in missing),
         extra=";".join(f"{d.path}={d.vidpid}" for d in extra),
         log=log_path.name,
@@ -194,7 +198,8 @@ def discover(psu_port: str, console_port: str, quiet_ms: int = 10_000, limit_ms:
         psu.close()
 
 
-def run(bench: Bench, rounds: int, out_dir: Path, t: Timing, keep_all_logs: bool) -> Path:
+def run(bench: Bench, rounds: int, out_dir: Path, t: Timing, keep_all_logs: bool,
+        abort_after: int = 5) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "logs").mkdir(exist_ok=True)
     meta = {"bench": bench.name, "rounds": rounds, "timing": t.__dict__, "tool_rev": _tool_rev(),
@@ -214,6 +219,7 @@ def run(bench: Bench, rounds: int, out_dir: Path, t: Timing, keep_all_logs: bool
         with open(out_dir / "rounds.csv", "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=CSV_FIELDS)
             w.writeheader()
+            leading_fails = 0   # 开头连续失败的轮数:整体性回归不必跑满
             for i in range(1, rounds + 1):
                 log_path = out_dir / "logs" / f"round-{i:04d}.log"
                 row = run_round(psu, bench, t, log_path)
@@ -226,6 +232,11 @@ def run(bench: Bench, rounds: int, out_dir: Path, t: Timing, keep_all_logs: bool
                 print(f"[{i}/{rounds}] {row['result']:<11} online={row.get('online_ms')} "
                       f"converge={row.get('converge_ms')} cold/hot={row.get('cold')}/{row.get('hot')} "
                       f"{row.get('detail', '')}", flush=True)
+                if leading_fails == i - 1 and row["result"] in ("usb_missing", "boot_fail"):
+                    leading_fails = i
+                    if abort_after and leading_fails >= abort_after:
+                        print(f"开头连续 {leading_fails} 轮失败,判为整体性回归,中止", flush=True)
+                        break
     finally:
         # 不管怎么结束都让板子保持供电
         try:

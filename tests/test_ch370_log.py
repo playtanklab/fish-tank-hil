@@ -82,6 +82,22 @@ class Ch370LogTest(unittest.TestCase):
         self.assertEqual(tree.resets, [])
         self.assertEqual(tree.last_ms, 2762)
 
+    def test_diag_lines_parsed(self):
+        text = FIXTURE.read_text() + (
+            "W (5480) UsbTreeCh370: enum_fail hot path=r.7.2 hub#3 p2 try=1 step=desc8 stage=D "
+            "resp=-2 naks=0 tog=0 pst=0x0101\n"
+            "W (5490) UsbTreeCh370: enum_warn path=r.6 SET_CONFIGURATION 失败(枚举仍按成功处理)\n"
+            "I (2500) UsbTreeCh370: hub path=r.6 nports=7 chars=0x00e9 power=per-port pwrgood=100ms\n")
+        tree = tree_from(text)
+        self.assertEqual(len(tree.diag_fails), 1)
+        f = tree.diag_fails[0]
+        self.assertEqual((f["phase"], f["path"], f["step"], f["stage"], f["resp"]),
+                         ("hot", "r.7.2", "desc8", "D", "-2"))
+        self.assertEqual(f["pst"], 0x0101)
+        self.assertEqual(tree.diag_warns, ["r.6 SET_CONFIGURATION 失败(枚举仍按成功处理)"])
+        self.assertEqual(tree.hubs["r.6"]["power"], "per-port")
+        self.assertEqual(tree.hubs["r.6"]["pwrgood_ms"], 100)
+
     def test_ansi_colors_stripped(self):
         text = "".join(f"\x1b[0;32m{l}\x1b[0m\n" for l in FIXTURE.read_text().splitlines())
         missing, _, _ = compare(tree_from(text), EXPECTED)

@@ -35,6 +35,9 @@ def summarize(out_dir: Path) -> str:
         lines.append(f"靠增量扫描补上的设备数（每轮）: 平均 {sum(hot) / len(hot):.2f}，最多 {max(hot)}")
     if missing:
         lines.append("缺失分布: " + ", ".join(f"{m} ×{c}" for m, c in missing.most_common()))
+    steps = Counter(":".join(f.split(":")[1:3]) for r in rows for f in r.get("fails", "").split(";") if f)
+    if steps:
+        lines.append("枚举失败(路径:步骤): " + ", ".join(f"{k} ×{c}" for k, c in steps.most_common(12)))
     rig = [r for r in rows if r["result"] in ("rig_fault", "reset")]
     for r in rig[:10]:
         lines.append(f"  第 {r['round']} 轮 {r['result']}: {r['detail']}")
