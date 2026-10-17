@@ -38,7 +38,8 @@ def cmd_run(args) -> None:
     bench = Bench.load(args.bench)
     label = args.label or Path(args.bench).stem
     out = Path(args.out) / f"{datetime.now():%Y%m%d-%H%M%S}-{label}"
-    t = Timing(off_s=args.off, deadline_ms=args.deadline_ms, tail_ms=args.tail_ms)
+    t = Timing(off_s=args.off, deadline_ms=args.deadline_ms, tail_ms=args.tail_ms,
+               settle_ms=args.settle_ms)
     run(bench, args.rounds, out, t, args.keep_all_logs, args.abort_after)
     text = summarize(out)
     (out / "summary.txt").write_text(text + "\n", encoding="utf-8")
@@ -84,6 +85,8 @@ def main() -> None:
     sr.add_argument("--deadline-ms", type=int, default=10_000)
     sr.add_argument("--tail-ms", type=int, default=30_000,
                     help="没到齐时继续观察到 CH370 上线后多少毫秒，看会不会自己恢复")
+    sr.add_argument("--settle-ms", type=int, default=1000,
+                    help="设备到齐后再观察多久(看 IDENTIFY 是否失败要 ≥5000)")
     sr.add_argument("--out", default="results")
     sr.add_argument("--keep-all-logs", action="store_true", help="通过的轮次也保留日志")
     sr.add_argument("--abort-after", type=int, default=5,

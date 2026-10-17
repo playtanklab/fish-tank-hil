@@ -24,7 +24,8 @@ from .zebra_psu import PsuShutdown, ZebraPsu
 
 CSV_FIELDS = [
     "round", "started", "result", "detail", "online_ms", "converge_ms", "first_log_ms",
-    "tty_s", "cold", "hot", "enum_fail_lines", "fails", "warns", "missing", "extra", "volt",
+    "tty_s", "cold", "hot", "enum_fail_lines", "fails", "warns", "id_fails", "id_giveups",
+    "missing", "extra", "volt",
     "amp", "log",
 ]
 
@@ -133,6 +134,8 @@ def run_round(psu: ZebraPsu, bench: Bench, t: Timing, log_path: Path) -> dict:
         fails=";".join(f"{f['phase']}:{f['path']}:{f['step']}:{f['stage']}{f['resp']}"
                        f":n{f['naks']}:t{f['tog']}" for f in tree.diag_fails[:8]),
         warns=";".join(tree.diag_warns[:4]),
+        id_fails=tree.identify_fails,
+        id_giveups=";".join(str(a) for a in tree.identify_giveups),
         missing=";".join(f"{e.path}={e.vidpid}" for e in missing),
         extra=";".join(f"{d.path}={d.vidpid}" for d in extra),
         log=log_path.name,
@@ -155,6 +158,10 @@ def run_round(psu: ZebraPsu, bench: Bench, t: Timing, log_path: Path) -> dict:
     if last_ms is not None and not missing:
         row["converge_ms"] = last_ms - tree.online_ms
     if not missing and row["converge_ms"] <= t.deadline_ms:
+        if tree.identify_giveups:
+            # 枚举到齐但有模块放弃准入:平台上等同缺失,单独一类
+            return {**row, "result": "identify_fail",
+                    "detail": "放弃准入 addr=" + row["id_giveups"]}
         return {**row, "result": "pass", "detail": ""}
     late = f"最后一个设备在上线后 {row.get('converge_ms')}ms 才出现" if not missing else "缺设备"
     return {**row, "result": "usb_missing", "detail": late}
@@ -232,7 +239,8 @@ def run(bench: Bench, rounds: int, out_dir: Path, t: Timing, keep_all_logs: bool
                 print(f"[{i}/{rounds}] {row['result']:<11} online={row.get('online_ms')} "
                       f"converge={row.get('converge_ms')} cold/hot={row.get('cold')}/{row.get('hot')} "
                       f"{row.get('detail', '')}", flush=True)
-                if leading_fails == i - 1 and row["result"] in ("usb_missing", "boot_fail"):
+                if leading_fails == i - 1 and row["result"] in ("usb_missing", "boot_fail",
+                                                               "identify_fail"):
                     leading_fails = i
                     if abort_after and leading_fails >= abort_after:
                         print(f"开头连续 {leading_fails} 轮失败,判为整体性回归,中止", flush=True)

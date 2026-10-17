@@ -17,7 +17,7 @@ def percentile(values: list[int], q: float) -> int | None:
 def summarize(out_dir: Path) -> str:
     rows = list(csv.DictReader(open(out_dir / "rounds.csv", encoding="utf-8")))
     results = Counter(r["result"] for r in rows)
-    valid = [r for r in rows if r["result"] in ("pass", "usb_missing", "boot_fail")]
+    valid = [r for r in rows if r["result"] in ("pass", "usb_missing", "boot_fail", "identify_fail")]
     fails = [r for r in valid if r["result"] != "pass"]
     conv = [int(r["converge_ms"]) for r in rows if r["converge_ms"]]
     missing = Counter(m for r in rows for m in r["missing"].split(";") if m)
@@ -38,6 +38,9 @@ def summarize(out_dir: Path) -> str:
     steps = Counter(":".join(f.split(":")[1:3]) for r in rows for f in r.get("fails", "").split(";") if f)
     if steps:
         lines.append("枚举失败(路径:步骤): " + ", ".join(f"{k} ×{c}" for k, c in steps.most_common(12)))
+    idf = [int(r.get("id_fails") or 0) for r in rows]
+    if any(idf):
+        lines.append(f"IDENTIFY 单次失败: 共 {sum(idf)} 次,出现在 {sum(1 for x in idf if x)} 轮")
     rig = [r for r in rows if r["result"] in ("rig_fault", "reset")]
     for r in rig[:10]:
         lines.append(f"  第 {r['round']} 轮 {r['result']}: {r['detail']}")

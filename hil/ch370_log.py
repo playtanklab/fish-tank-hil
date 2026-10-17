@@ -31,6 +31,9 @@ RE_DIAG_WARN = re.compile(r"^enum_warn path=(\S+) (.*)$")
 RE_HUB_INFO = re.compile(
     r"^hub path=(\S+) nports=(\d+) chars=0x([0-9a-f]+) power=(\S+) pwrgood=(\d+)ms")
 RE_ROM = re.compile(r"ESP-ROM:|rst:0x[0-9a-f]+")
+# FishtankRegistry:模块 IDENTIFY 单次失败 / 重试用尽(放弃准入 = 模块在平台上不可用)
+RE_ID_FAIL = re.compile(r"^ch370 identify cb failed st=(\d+) addr=(\d+)")
+RE_ID_GIVEUP = re.compile(r"^identify timeout: dev=\S+ addr=(\d+)")
 RESET_DROP_MS = 1000
 
 
@@ -52,6 +55,8 @@ class Ch370Tree:
     first_ms: int | None = None
     last_ms: int | None = None
     enum_fail_lines: int = 0
+    identify_fails: int = 0
+    identify_giveups: list[int] = field(default_factory=list)   # 放弃准入的 USB 地址
     diag_fails: list[dict] = field(default_factory=list)  # 固件 P0 起的结构化 enum_fail 行
     diag_warns: list[str] = field(default_factory=list)
     hubs: dict[str, dict] = field(default_factory=dict)   # 路径 → nports/power/pwrgood
@@ -84,6 +89,12 @@ class Ch370Tree:
         if self.first_ms is None:
             self.first_ms = ms
         self.last_ms = ms if self.last_ms is None else max(self.last_ms, ms)
+        if m.group(2) == "FishtankRegistry":
+            if RE_ID_FAIL.match(msg):
+                self.identify_fails += 1
+            elif g := RE_ID_GIVEUP.match(msg):
+                self.identify_giveups.append(int(g.group(1)))
+            return
         if m.group(2) != "UsbTreeCh370":
             return
         self._usb_tree(ms, msg)

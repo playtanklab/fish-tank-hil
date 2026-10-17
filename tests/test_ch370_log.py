@@ -98,6 +98,14 @@ class Ch370LogTest(unittest.TestCase):
         self.assertEqual(tree.hubs["r.6"]["power"], "per-port")
         self.assertEqual(tree.hubs["r.6"]["pwrgood_ms"], 100)
 
+    def test_identify_outcomes_parsed(self):
+        text = FIXTURE.read_text() + (
+            "W (8003) FishtankRegistry: ch370 identify cb failed st=1 addr=13\n"
+            "W (21098) FishtankRegistry: identify timeout: dev=0xc37000d addr=13\n")
+        tree = tree_from(text)
+        self.assertEqual(tree.identify_fails, 1)
+        self.assertEqual(tree.identify_giveups, [13])
+
     def test_ansi_colors_stripped(self):
         text = "".join(f"\x1b[0;32m{l}\x1b[0m\n" for l in FIXTURE.read_text().splitlines())
         missing, _, _ = compare(tree_from(text), EXPECTED)
