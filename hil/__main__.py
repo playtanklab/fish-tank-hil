@@ -1,4 +1,4 @@
-"""命令行入口：python -m hil {psu,run,summary} ..."""
+"""命令行入口：python -m hil {psu,run,soak,discover,summary} ..."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .runner import Bench, Timing, discover, run
+from .soak import format_result, run_soak
 from .summary import summarize
 from .zebra_psu import ZebraPsu
 
@@ -43,6 +44,17 @@ def cmd_run(args) -> None:
     run(bench, args.rounds, out, t, args.keep_all_logs, args.abort_after)
     text = summarize(out)
     (out / "summary.txt").write_text(text + "\n", encoding="utf-8")
+    print(text)
+
+
+def cmd_soak(args) -> None:
+    bench = Bench.load(args.bench)
+    label = args.label or f"soak-{Path(args.bench).stem}"
+    out = Path(args.out) / f"{datetime.now():%Y%m%d-%H%M%S}-{label}"
+    st = run_soak(bench, args.hours, out, off_s=args.off)
+    text = format_result(st)
+    (out / "summary.txt").write_text(text + "\n", encoding="utf-8")
+    print(f"运行目录: {out}")
     print(text)
 
 
@@ -92,6 +104,14 @@ def main() -> None:
     sr.add_argument("--abort-after", type=int, default=5,
                     help="开头连续这么多轮失败就中止(0 = 不中止)")
     sr.set_defaults(func=cmd_run)
+
+    sk = sub.add_parser("soak", help="冷启动一次后保持供电，被动读串口 N 小时（长跑 S9）")
+    sk.add_argument("--bench", required=True)
+    sk.add_argument("--hours", type=float, required=True)
+    sk.add_argument("--label")
+    sk.add_argument("--off", type=float, default=5.0, help="开头冷启动的断电秒数")
+    sk.add_argument("--out", default="results")
+    sk.set_defaults(func=cmd_soak)
 
     sd = sub.add_parser("discover", help="断电上电一次，抓当前拓扑，可写成台架文件")
     sd.add_argument("--psu-port", required=True)

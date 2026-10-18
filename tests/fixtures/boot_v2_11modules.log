@@ -1,0 +1,68 @@
+I (2157) FishtankRegistry: started
+I (2176) Ch370Bus: ch370 bus task started
+I (2210) UsbTreeCh370: RAM loopback OK (8 bytes)
+I (2210) UsbTreeCh370: CH370 online (SYS_INFO=0xc9), 24MHz osc running (enumerator v2)
+I (2313) UsbTreeCh370: CH370 根口 attach: 0 -> 1 (插入)
+I (2342) UsbTreeCh370: hub path=r nports=7 chars=0x0020 power=ganged pwrgood=100ms
+I (2342) UsbTreeCh370: CH370 根口设备: addr=1 1a86:809e <HUB> 'USB2.0 HUB'
+I (2694) UsbTreeCh370: hub path=r.6 nports=7 chars=0x0020 power=ganged pwrgood=100ms
+I (2694) UsbTreeCh370: 热插入: hub#1 端口6 → addr=2 1a86:809e <HUB> 'USB2.0 HUB'
+I (2760) UsbTreeCh370: hub path=r.7 nports=7 chars=0x0020 power=ganged pwrgood=100ms
+I (2760) UsbTreeCh370: 热插入: hub#1 端口7 → addr=3 1a86:809e <HUB> 'USB2.0 HUB'
+I (5304) UsbTreeCh370: 热插入: hub#1 端口4 → addr=4 2402:5611 'WAVE-MAKER'
+I (5345) UsbTreeCh370: 热插入: hub#1 端口5 → addr=5 2402:5607 'FOREGROUND-LIGHT-24'
+I (5455) FishtankRegistry: ch370 attach (pending IDENTIFY): addr=4 inst=1 vid:pid=2402:5611
+I (5455) FishtankRegistry: ch370 addr=4 descriptor chip_id from iSerial: 000000000000000000000000
+I (5460) Ch370Bus: ch370 attach: addr=4 vid=2402 pid=5611
+I (5466) FishtankRegistry: attach: wave-maker chip=000000000000000000000000 type=0x11 fw=WM-V0103 inst=1
+I (5496) FishtankRegistry: ch370 attach (pending IDENTIFY): addr=5 inst=2 vid:pid=2402:5607
+I (5496) FishtankRegistry: ch370 addr=5 descriptor chip_id from iSerial: 000000000000000000000000
+I (5501) Ch370Bus: ch370 attach: addr=5 vid=2402 pid=5607
+I (5507) FishtankRegistry: attach: foreground-light-24 chip=000000000000000000000000 type=0x07 fw=F24V0103 inst=2
+I (5644) UsbTreeCh370: 热插入: hub#2 端口2 → addr=6 2402:5605 'SPOTLIGHT'
+I (5687) UsbTreeCh370: 热插入: hub#2 端口3 → addr=7 2402:560d 'INTAKE-FAN'
+I (5728) UsbTreeCh370: 热插入: hub#2 端口4 → addr=8 2402:560b 'MAIN-LIGHT-4K5K'
+I (5769) UsbTreeCh370: 热插入: hub#2 端口5 → addr=9 2402:5605 'SPOTLIGHT'
+I (5810) UsbTreeCh370: 热插入: hub#2 端口6 → addr=10 2402:5612 'NUTRIENT-DOSER'
+I (5851) UsbTreeCh370: 热插入: hub#2 端口7 → addr=11 2402:5605 'SPOTLIGHT'
+I (5892) UsbTreeCh370: 热插入: hub#3 端口2 → addr=12 2402:5601 'PUMP-CHAMBER'
+I (5933) UsbTreeCh370: 热插入: hub#3 端口4 → addr=13 2402:560a 'MAIN-LIGHT-3K6K'
+I (5974) UsbTreeCh370: 热插入: hub#3 端口6 → addr=14 2402:5602 'WATER-CHANGER'
+I (5975) FishtankRegistry: ch370 attach (pending IDENTIFY): addr=6 inst=3 vid:pid=2402:5605
+I (5979) FishtankRegistry: ch370 addr=6 descriptor chip_id from iSerial: 000000000000000000000000
+I (5987) Ch370Bus: ch370 attach: addr=6 vid=2402 pid=5605
+I (5993) FishtankRegistry: ch370 attach (pending IDENTIFY): addr=7 inst=4 vid:pid=2402:560d
+I (6001) FishtankRegistry: ch370 addr=7 descriptor chip_id from iSerial: 000000000000000000000000
+I (6009) Ch370Bus: ch370 attach: addr=7 vid=2402 pid=560d
+I (6014) FishtankRegistry: ch370 attach (pending IDENTIFY): addr=8 inst=5 vid:pid=2402:560b
+I (6022) FishtankRegistry: ch370 addr=8 descriptor chip_id from iSerial: 000000000000000000000000
+I (6031) Ch370Bus: ch370 attach: addr=8 vid=2402 pid=560b
+I (6036) FishtankRegistry: ch370 attach (pending IDENTIFY): addr=9 inst=6 vid:pid=2402:5605
+I (6044) FishtankRegistry: ch370 addr=9 descriptor chip_id from iSerial: 000000000000000000000000
+I (6053) Ch370Bus: ch370 attach: addr=9 vid=2402 pid=5605
+I (6058) FishtankRegistry: ch370 attach (pending IDENTIFY): addr=10 inst=7 vid:pid=2402:5612
+I (6066) FishtankRegistry: ch370 addr=10 descriptor chip_id from iSerial: 000000000000000000000000
+I (6075) Ch370Bus: ch370 attach: addr=10 vid=2402 pid=5612
+I (6080) FishtankRegistry: attach: spotlight chip=000000000000000000000000 type=0x05 fw=SL-V0104 inst=3
+I (6090) FishtankRegistry: attach: intake-fan chip=000000000000000000000000 type=0x0d fw=IF-V0105 inst=4
+I (6099) FishtankRegistry: attach: main-light-4k5k chip=000000000000000000000000 type=0x0b fw=M45V0103 inst=5
+I (6108) FishtankRegistry: attach: spotlight chip=000000000000000000000000 type=0x05 fw=SL-V0104 inst=6
+I (6117) FishtankRegistry: attach: nutrient-doser chip=000000000000000000000000 type=0x12 fw=ND-V0101 inst=7
+I (6132) FishtankRegistry: ch370 attach (pending IDENTIFY): addr=11 inst=8 vid:pid=2402:5605
+I (6135) FishtankRegistry: ch370 addr=11 descriptor chip_id from iSerial: 000000000000000000000000
+I (6143) Ch370Bus: ch370 attach: addr=11 vid=2402 pid=5605
+I (6149) FishtankRegistry: ch370 attach (pending IDENTIFY): addr=12 inst=9 vid:pid=2402:5601
+I (6157) FishtankRegistry: ch370 addr=12 descriptor chip_id from iSerial: 000000000000000000000000
+I (6165) Ch370Bus: ch370 attach: addr=12 vid=2402 pid=5601
+I (6171) FishtankRegistry: ch370 attach (pending IDENTIFY): addr=13 inst=10 vid:pid=2402:560a
+I (6179) FishtankRegistry: ch370 addr=13 descriptor chip_id from iSerial: 000000000000000000000000
+I (6188) Ch370Bus: ch370 attach: addr=13 vid=2402 pid=560a
+I (6193) FishtankRegistry: ch370 attach (pending IDENTIFY): addr=14 inst=11 vid:pid=2402:5602
+I (6201) FishtankRegistry: ch370 addr=14 descriptor chip_id from iSerial: 000000000000000000000000
+I (6210) Ch370Bus: ch370 attach: addr=14 vid=2402 pid=5602
+I (6215) FishtankRegistry: attach: spotlight chip=000000000000000000000000 type=0x05 fw=SL-V0104 inst=8
+I (6225) FishtankRegistry: attach: pump-chamber chip=000000000000000000000000 type=0x01 fw=PC-V0106 inst=9
+I (6234) FishtankRegistry: attach: main-light-3k6k chip=000000000000000000000000 type=0x0a fw=M36V0104 inst=10
+I (6244) FishtankRegistry: attach: water-changer chip=000000000000000000000000 type=0x02 fw=WC-V0103 inst=11
+I (122191) CpuStats: win=60s ch370_bus=4.8% spi_ops=148851 spi_busy=2668ms(4.4%) txn=20285 sleeps=2 timeouts=0 | IDLE0=83.1% IDLE1=80.7% ft_tick=11.5% audio_afe=6.9% ch370_bus=4.8% ft_poller=4.3% audio_input=3.3% taskLVGL=2.5% esp_timer=0.6%
+I (182202) CpuStats: win=60s ch370_bus=4.7% spi_ops=148454 spi_busy=2674ms(4.4%) txn=20220 sleeps=8 timeouts=0 | IDLE0=83.0% IDLE1=80.7% ft_tick=11.5% audio_afe=6.9% ch370_bus=4.7% ft_poller=4.3% audio_input=3.3% taskLVGL=2.5% esp_timer=0.6%
