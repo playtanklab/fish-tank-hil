@@ -21,6 +21,8 @@ RE_HOT = re.compile(r"^热插入: hub#(\d+) 端口(\d+) → " + DEV)
 RE_UNPLUG = re.compile(r"^热拔出: hub#(\d+) 端口(\d+)")
 RE_LATCH = re.compile(r"^hub#(\d+) 端口(\d+) 变化锁存.*先摘除原设备")
 RE_HUB_DEAD = re.compile(r"^hub#(\d+) 连续 \d+ 轮全端口读失败")
+# V2 兜底:端口连续失败 → 复位所在 hub(固件路径 r / r.6 …),整个 hub 子树先摘除再重新枚举
+RE_ESCALATE = re.compile(r"^enum_escalate path=\S+ .*复位所在 hub (r(?:\.\d+)*)")
 RE_ROOT_GONE = re.compile(r"^CH370 根口 attach: \d+ -> 0|全量重建")
 RE_ENUM_FAIL = re.compile(r"^hub#(\d+) 端口(\d+) 复位/枚举失败")
 RE_ROOT_FAIL = re.compile(r"^根口(设备)?枚举失败")
@@ -55,6 +57,7 @@ class Ch370Tree:
     first_ms: int | None = None
     last_ms: int | None = None
     enum_fail_lines: int = 0
+    escalations: int = 0        # 兜底复位 hub 次数(会让兄弟设备短暂掉线)
     identify_fails: int = 0
     identify_giveups: list[int] = field(default_factory=list)   # 放弃准入的 USB 地址
     diag_fails: list[dict] = field(default_factory=list)  # 固件 P0 起的结构化 enum_fail 行
@@ -123,6 +126,10 @@ class Ch370Tree:
             parent = self._addr_path.get(int(m.group(1)))
             if parent:
                 self._remove(f"{parent}.{m.group(2)}")
+            return
+        if m := RE_ESCALATE.match(msg):
+            self.escalations += 1
+            self._remove("root" + m.group(1)[1:])
             return
         if m := RE_HUB_DEAD.match(msg):
             path = self._addr_path.get(int(m.group(1)))

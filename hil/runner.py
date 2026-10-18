@@ -24,7 +24,7 @@ from .zebra_psu import PsuShutdown, ZebraPsu
 
 CSV_FIELDS = [
     "round", "started", "result", "detail", "online_ms", "converge_ms", "first_log_ms",
-    "tty_s", "cold", "hot", "enum_fail_lines", "fails", "warns", "id_fails", "id_giveups",
+    "tty_s", "cold", "hot", "enum_fail_lines", "escalations", "fails", "warns", "id_fails", "id_giveups",
     "missing", "extra", "volt",
     "amp", "log",
 ]
@@ -157,6 +157,7 @@ def _capture(bench: Bench, t: Timing, log_path: Path, row: dict, psu: ZebraPsu,
         online_ms=tree.online_ms, first_log_ms=tree.first_ms,
         cold=sum(d.how == "cold" for d in devs), hot=sum(d.how == "hot" for d in devs),
         enum_fail_lines=tree.enum_fail_lines,
+        escalations=tree.escalations,
         fails=";".join(f"{f['phase']}:{f['path']}:{f['step']}:{f['stage']}{f['resp']}"
                        f":n{f['naks']}:t{f['tog']}" for f in tree.diag_fails[:8]),
         warns=";".join(tree.diag_warns[:4]),

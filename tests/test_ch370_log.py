@@ -112,5 +112,21 @@ class Ch370LogTest(unittest.TestCase):
         self.assertEqual(missing, [])
 
 
+
+
+class EscalationTest(unittest.TestCase):
+    def test_escalation_removes_hub_subtree(self):
+        # 固件 V2 兜底复位 hub r.6:hub 及其下游先摘除,重新枚举后再回来
+        t = tree_from(FIXTURE.read_text())
+        self.assertIn("root.6.2", t.devices)
+        t.feed_line("W (9000) UsbTreeCh370: enum_escalate path=r.6.4 连续 3 次失败,复位所在 hub r.6 让整组下游重新上电")
+        self.assertEqual(t.escalations, 1)
+        self.assertNotIn("root.6", t.devices)
+        self.assertNotIn("root.6.2", t.devices)
+        self.assertIn("root.7.2", t.devices)
+        t.feed_line("W (9100) UsbTreeCh370: enum_escalate path=r.4 连续 3 次失败,复位所在 hub r 让整组下游重新上电")
+        self.assertEqual(t.devices, {})
+
+
 if __name__ == "__main__":
     unittest.main()
