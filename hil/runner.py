@@ -54,6 +54,7 @@ class Timing:
     tty_timeout_s: float = 10.0
     online_timeout_s: float = 25.0
     max_first_log_ms: int = 2_000  # 打开串口时设备已经跑过这么久，就认为开头日志丢太多
+    reset: str = "power"        # power = 整板断电；warm = 只拉 EN 复位 P4，CH370/hub/模块不断电
 
 
 def _tool_rev() -> str:
@@ -79,8 +80,19 @@ def _open_console(path: str, timeout_s: float):
             time.sleep(0.01)
 
 
+def _pulse_en(con) -> None:
+    # 板载自动下载电路:RTS 置位且 DTR 不置位时 EN 被拉低;DTR 保持不置位,IO0 为高,松开后正常启动
+    con.dtr = False
+    con.rts = True
+    time.sleep(0.1)
+    con.reset_input_buffer()   # 丢掉复位前的日志
+    con.rts = False
+
+
 def run_round(psu: ZebraPsu, bench: Bench, t: Timing, log_path: Path) -> dict:
     row: dict = {"started": datetime.now().isoformat(timespec="seconds")}
+    if t.reset == "warm":
+        return _capture(bench, t, log_path, row, psu, None)
     psu.set_output(False)
     time.sleep(t.off_s)
     if os.path.exists(bench.console_port):
@@ -94,19 +106,33 @@ def run_round(psu: ZebraPsu, bench: Bench, t: Timing, log_path: Path) -> dict:
             return {**row, "result": "rig_fault", "detail": "上电后 P4 串口没出现"}
         time.sleep(0.005)
     row["tty_s"] = round(time.monotonic() - t_on, 3)
+    return _capture(bench, t, log_path, row, psu, t_on)
 
+
+def _capture(bench: Bench, t: Timing, log_path: Path, row: dict, psu: ZebraPsu,
+             t_on: float | None) -> dict:
     tree = Ch370Tree()
     raw = bytearray()
     try:
         con = _open_console(bench.console_port, 2.0)
     except Exception as e:
         return {**row, "result": "rig_fault", "detail": f"P4 串口打不开: {e}"}
+    banner = True                  # 断电模式下串口上的第一行就是本次开机
+    if t_on is None:
+        time.sleep(0.2)
+        _pulse_en(con)
+        t_on = time.monotonic()
+        banner = False             # warm:在途的旧日志可能晚到,从 ROM 横幅那一行开始解析
     try:
         while True:
             chunk = con.read(4096)
             if chunk:
                 raw += chunk
-                tree.feed(chunk)
+                if banner:
+                    tree.feed(chunk)
+                elif (i := raw.find(b"rst:0x")) >= 0:
+                    banner = True
+                    tree.feed(raw[raw.rfind(b"\n", 0, i) + 1:])
             if tree.resets:
                 break
             missing, _, last_ms = compare(tree, bench.expected)
@@ -149,6 +175,8 @@ def run_round(psu: ZebraPsu, bench: Bench, t: Timing, log_path: Path) -> dict:
 
     if not raw:
         return {**row, "result": "rig_fault", "detail": "P4 串口没有任何数据"}
+    if t.reset == "warm" and b"rst:0x" not in bytes(raw):
+        return {**row, "result": "rig_fault", "detail": "拉 EN 后没看到 ROM 复位横幅"}
     if tree.resets:
         return {**row, "result": "reset", "detail": tree.resets[0]}
     if tree.online_ms is None:

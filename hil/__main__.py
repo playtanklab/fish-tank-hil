@@ -40,7 +40,7 @@ def cmd_run(args) -> None:
     label = args.label or Path(args.bench).stem
     out = Path(args.out) / f"{datetime.now():%Y%m%d-%H%M%S}-{label}"
     t = Timing(off_s=args.off, deadline_ms=args.deadline_ms, tail_ms=args.tail_ms,
-               settle_ms=args.settle_ms)
+               settle_ms=args.settle_ms, reset=args.reset)
     run(bench, args.rounds, out, t, args.keep_all_logs, args.abort_after)
     text = summarize(out)
     (out / "summary.txt").write_text(text + "\n", encoding="utf-8")
@@ -94,6 +94,8 @@ def main() -> None:
     sr.add_argument("--rounds", type=int, required=True)
     sr.add_argument("--label")
     sr.add_argument("--off", type=float, default=5.0, help="每轮断电秒数")
+    sr.add_argument("--reset", choices=["power", "warm"], default="power",
+                    help="power=整板断电上电；warm=只拉 EN 复位 P4，CH370/hub/模块保持供电")
     sr.add_argument("--deadline-ms", type=int, default=10_000)
     sr.add_argument("--tail-ms", type=int, default=30_000,
                     help="没到齐时继续观察到 CH370 上线后多少毫秒，看会不会自己恢复")

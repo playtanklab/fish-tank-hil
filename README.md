@@ -36,6 +36,8 @@ uv venv .venv && uv pip install --python .venv/bin/python -r requirements.txt
 .venv/bin/python -m hil psu status --bench benches/5C84388205-2mod.json
 .venv/bin/python -m hil run --bench benches/5C84388205-2mod.json --rounds 50 --label rig-accept
 .venv/bin/python -m hil summary results/<运行目录>
+# 只复位 P4（拉 EN，CH370/hub/模块保持供电），模拟 P4 OTA 后重启、崩溃重启
+.venv/bin/python -m hil run --bench benches/5C84388205-full.json --reset warm --rounds 300 --settle-ms 3000
 # 长跑（S9）：冷启动一次后保持供电，被动读串口 72 小时；每分钟刷新运行目录里的 status.json
 .venv/bin/python -m hil soak --bench benches/5C84388205-full.json --hours 72
 .venv/bin/python -m unittest discover -s tests
