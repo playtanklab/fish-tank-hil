@@ -224,7 +224,17 @@ def run_camplug(bench: CameraBench, rounds: int, out_dir: Path, t: CamTiming,
             for i in range(1, rounds + 1):
                 log_path = out_dir / "logs" / f"round-{i:04d}.log"
                 s.log = RoundLog(time.monotonic())
-                row = _cam_round(psu, s, first=i == 1)
+                try:
+                    row = _cam_round(psu, s, first=i == 1)
+                except Exception as e:
+                    # 电源没回复/关机等：先把这一轮已经抓到的日志和一行 rig_fault 落盘再退出
+                    s.pump(time.monotonic() + 2)
+                    s.mark(f"===== 中止: {e} =====")
+                    log_path.write_text(s.log.text(), encoding="utf-8")
+                    w.writerow({k: {"round": i, "result": "rig_fault", "detail": f"中止: {e}",
+                                    "log": log_path.name}.get(k, "") for k in CSV_FIELDS})
+                    f.flush()
+                    raise
                 row["round"] = i
                 if row["result"] == "recovered" and not keep_all_logs:
                     row["log"] = ""

@@ -190,6 +190,54 @@ class RoundFlowTest(unittest.TestCase):
         self.assertNotIn(b"AT_OUTPUT=0", ser.written)
 
 
+class PsuSilentTest(unittest.TestCase):
+    def test_psu_no_reply_keeps_log_and_row(self):
+        # 2026-10-23 实机遇到过：关输出后电源不再回复，开输出超时。要留下本轮日志和一行 rig_fault
+        import hil.camplug as cp
+        from hil.zebra_psu import PsuError
+
+        q: queue.Queue = queue.Queue()
+        q.put((time.monotonic() - 30, "I (1) UvcCamera: stream started (actual) 640x480@20fps"))
+        drop = ["W (52942) uvc-isoc: usb err 1",
+                "E (53056) SmartFishtankBoard: controlled whole-device restart for USB camera recovery (2/2)"]
+        ser = FakePsuSerial(q, drop, [])
+        del ser.replies[b"AT_OUTPUT=1"]           # 电源不再回复开输出
+        ser.replies.update({b"AT_VBUS": b"AT_VBUS:5.00\r\n", b"AT_CURRENT": b"AT_CURRENT:1.5\r\n",
+                            b"AT_VERSION": b"AT_VERSION:3.18\r\n"})
+
+        class Reader:
+            def __init__(self, port):
+                self.q = q
+
+            def open(self): pass
+            def start(self): pass
+            def stop(self): pass
+
+        orig = (cp.ConsoleReader, cp.ZebraPsu.open)
+        cp.ConsoleReader = Reader
+        cp.ZebraPsu.open = classmethod(lambda cls, port: ZebraPsu(ser, reply_timeout=0.05))
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                out = Path(d) / "run"
+                with self.assertRaises(PsuError):
+                    cp.run_camplug(CameraBench("t", "", "", 5.0, VIDPID), 2, out,
+                                   CamTiming(off_s=0.05, on_wait_s=0.1, pre_wait_s=0.05,
+                                             stream_settle_s=0))
+                with open(out / "rounds.csv", encoding="utf-8") as f:
+                    rows = list(csv.DictReader(f))
+                log = (out / "logs" / "round-0001.log").read_text(encoding="utf-8")
+                text = summarize_camplug(out)
+        finally:
+            cp.ConsoleReader, cp.ZebraPsu.open = orig
+        self.assertEqual([(r["round"], r["result"]) for r in rows], [("1", "rig_fault")])
+        self.assertIn("AT_OUTPUT=1", rows[0]["detail"])
+        self.assertIn("controlled whole-device restart", log)
+        self.assertIn("rig_fault 1", text)
+        # 关输出之后只发过开输出（本轮一次 + 收尾一次），没有任何查询
+        off = ser.written.index(b"AT_OUTPUT=0")
+        self.assertEqual(ser.written[off + 1:], [b"AT_OUTPUT=1", b"AT_OUTPUT=1"])
+
+
 class SummaryTest(unittest.TestCase):
     def test_summary_counts_and_distribution(self):
         rows = [analyze_text(), analyze_text(drop=REBOOT_LINES), analyze_text(drop=REBOOT_LINES)]

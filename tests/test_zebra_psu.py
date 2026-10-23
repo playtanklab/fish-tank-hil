@@ -66,6 +66,15 @@ class ZebraPsuTest(unittest.TestCase):
         with self.assertRaises(PsuShutdown):
             p.version()
 
+    def test_unsolicited_shutdown_not_discarded(self):
+        # 两条命令之间电源自己报“已关机”：发下一条命令前不能被 reset_input_buffer 吞掉
+        p, ser = psu({b"AT_OUTPUT=1": b"AT_OUTPUT:OK\r\n"})
+        ser._pending = "已关机\r\n".encode("gbk")
+        with self.assertRaises(PsuShutdown):
+            p.set_output(True)
+        self.assertEqual(ser.written, [])
+        self.assertEqual(p.noise, ["已关机"])
+
     def test_timeout_raises(self):
         p, _ = psu({})
         with self.assertRaises(PsuError):

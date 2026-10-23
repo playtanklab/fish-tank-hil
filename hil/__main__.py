@@ -64,10 +64,14 @@ def cmd_camplug(args) -> None:
     label = args.label or Path(args.bench).stem
     out = Path(args.out) / f"{datetime.now():%Y%m%d-%H%M%S}-{label}"
     t = CamTiming(off_s=args.off, on_wait_s=args.on_wait, pre_wait_s=args.pre_wait)
-    run_camplug(bench, args.rounds, out, t, args.keep_all_logs, args.abort_after)
-    text = summarize_camplug(out)
-    (out / "summary.txt").write_text(text + "\n", encoding="utf-8")
-    print(text)
+    try:
+        run_camplug(bench, args.rounds, out, t, args.keep_all_logs, args.abort_after)
+    finally:
+        # 中途出错也把已跑完的轮次汇总出来
+        if (out / "rounds.csv").exists():
+            text = summarize_camplug(out)
+            (out / "summary.txt").write_text(text + "\n", encoding="utf-8")
+            print(text)
 
 
 def cmd_summary(args) -> None:
