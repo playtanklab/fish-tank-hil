@@ -58,6 +58,7 @@ RULES: list[tuple[str, re.Pattern]] = [(k, re.compile(p)) for k, p in [
     ("uvc_connected", r"UvcCamera: UVC connected: dev_addr=(\d+)"),
     ("stream_stopped", r"UvcCamera: stream stopped"),
     ("stream_started", r"UvcCamera: stream started"),
+    ("enc_started", r"H264Enc: streaming start"),
     ("publish", r"Rtmps: secure publish connected"),
 ]]
 
@@ -197,6 +198,7 @@ def analyze(lines: list[tuple[float, str]], t_off: float, t_on: float, vidpid: s
     uvc = first("uvc_connected", t_on)
     stream = first("stream_started", t_on)
     publish = first("publish", t_on)
+    enc = first("enc_started", t_on)
     stream_while_off = first("stream_started", t_off, lambda e: e.t < t_on)
 
     row = {
@@ -206,6 +208,7 @@ def analyze(lines: list[tuple[float, str]], t_off: float, t_on: float, vidpid: s
         "uvc_ms": _ms(uvc.t, t_on) if uvc else None,
         "stream_ms": _ms(stream.t, t_on) if stream else None,
         "publish_ms": _ms(publish.t, t_on) if publish else None,
+        "enc_ms": _ms(enc.t, t_on) if enc else None,
         "usb_err": count("usb_err"),
         "urb_err": count("urb_err"),
         "teardown_unsafe": count("teardown_unsafe"),

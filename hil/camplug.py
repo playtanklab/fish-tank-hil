@@ -33,7 +33,7 @@ from .zebra_psu import ZebraPsu
 KIND = "camplug"
 CSV_FIELDS = [
     "round", "started", "result", "detail", "pre", "drop_ms", "reboot_ms", "attach_ms", "uvc_ms",
-    "stream_ms", "publish_ms", "usb_err", "urb_err", "teardown_unsafe", "restart_req",
+    "stream_ms", "enc_ms", "publish_ms", "usb_err", "urb_err", "teardown_unsafe", "restart_req",
     "budget_boot", "budget_exhausted", "reset_reason", "reboots", "stream_starts", "fw",
     "serial_lost", "crash", "amp_before", "amp", "events", "log",
 ]
@@ -245,7 +245,8 @@ def run_camplug(bench: CameraBench, rounds: int, out_dir: Path, t: CamTiming,
                 f.flush()
                 print(f"[{i}/{rounds}] {row['result']:<9} pre={row['pre']} drop={row.get('drop_ms')} "
                       f"reboot={row.get('reboot_ms')} attach={row.get('attach_ms')} "
-                      f"stream={row.get('stream_ms')} usb_err={row.get('usb_err', '')} "
+                      f"stream={row.get('stream_ms')} enc={row.get('enc_ms')} "
+                      f"pub={row.get('publish_ms')} usb_err={row.get('usb_err', '')} "
                       f"{row.get('detail', '')}", flush=True)
                 fails = fails + 1 if row["result"] in FAIL_RESULTS else 0
                 if abort_after and fails >= abort_after:
@@ -298,6 +299,8 @@ def summarize_camplug(out_dir: Path) -> str:
         f"  断电→检出掉线  {_dist(ints(rec, 'drop_ms'))}",
         f"  上电→USB attach {_dist(ints(rec, 'attach_ms'))}",
         f"  上电→重新出流  {_dist(ints(rec, 'stream_ms'))}",
+        f"  上电→编码恢复  {_dist(ints(rec, 'enc_ms'))}",
+        f"  上电→推流恢复  {_dist(ints(rec, 'publish_ms'))}",
         f"整机重启（rebooted）{len(reb)} 轮，其中重启后恢复出流 {len(reb_ok)} 轮；"
         f"含崩溃在内的重启次数 {sum(int(r['reboots'] or 0) for r in rows)}",
     ]
