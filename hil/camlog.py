@@ -27,7 +27,8 @@ ESP_MS = re.compile(r"^[IWEDV] \((\d+)\) ")
 RULES: list[tuple[str, re.Pattern]] = [(k, re.compile(p)) for k, p in [
     # 崩溃类：panic、abort、任务看门狗、中断看门狗、栈溢出、断言、堆损坏
     ("crash", r"Guru Meditation|abort\(\) was called|Task watchdog got triggered"
-              r"|Interrupt wdt timeout|[Ss]tack overflow|assert failed|CORRUPT HEAP"),
+              r"|Interrupt wdt timeout|[Ss]tack overflow|assert failed|CORRUPT HEAP"
+              r"|heap integrity CORRUPTED"),
     # 整机重启：ROM 横幅和复位原因（复位原因见 CRASH_RESET）
     ("rom", r"^ESP-ROM:"),
     ("reset_reason", r"^rst:0x([0-9a-f]+) \((\w+)\)"),
@@ -44,6 +45,14 @@ RULES: list[tuple[str, re.Pattern]] = [(k, re.compile(p)) for k, p in [
     ("teardown_unsafe", r"UvcCamera: USB teardown unsafe"),
     ("cam_offline", r"camera safe offline"),
     ("usb_detach", r"UsbDeviceInventory: USB detach"),
+    # 稳定性改造（E1 起）：断开时关流，不再锁存重启
+    ("cam_gone_close_failed", r"camera gone: stream_close.*returned"),
+    ("cam_gone", r"UvcCamera: camera gone: stream closed \((\w[\w-]*)"),
+    ("cam_gone_deferred", r"UvcCamera: camera gone while stream busy"),
+    ("heap_ok", r"camera gone: heap integrity ok"),
+    # 周期状态（E1 起，每 5 s）：断电前确认在出流
+    ("camstat_up", r"CamStat: streaming=1 "),
+    ("camstat_down", r"CamStat: streaming=0 "),
     # 重新出现与出流
     ("usb_attach", r"UsbDeviceInventory: USB attach addr=(\d+) vid:pid=([0-9a-f]{4}:[0-9a-f]{4})"),
     ("uvc_connected", r"UvcCamera: UVC connected: dev_addr=(\d+)"),
@@ -55,12 +64,14 @@ RULES: list[tuple[str, re.Pattern]] = [(k, re.compile(p)) for k, p in [
 # 复位原因名里带这些字的算崩溃（看门狗、掉电、CPU 锁死）；SW_CPU_RESET 等受控重启不算
 CRASH_RESET = re.compile(r"WDT|BROWN|LOCKUP")
 
-DROP_KINDS = {"usb_err", "urb_err", "teardown_unsafe", "cam_offline", "usb_detach"}
+DROP_KINDS = {"usb_err", "urb_err", "teardown_unsafe", "cam_offline", "usb_detach", "cam_gone",
+              "cam_gone_deferred", "cam_gone_close_failed"}
 BOOT_KINDS = {"rom", "reset_reason"}
 # 断电前确认用：这些事件之后认为摄像头不在出流。零星的 usb err 不算（正常出流时也偶尔有一条）；
 # stream_stopped 在切分辨率时会先停再起，起来之后又回到 streaming
 STATE_DOWN_KINDS = {"teardown_unsafe", "cam_offline", "usb_detach", "budget_exhausted", "crash",
-                    "rebooting", "restart_req", "stream_stopped"} | BOOT_KINDS
+                    "rebooting", "restart_req", "stream_stopped", "cam_gone", "cam_gone_deferred",
+                    "cam_gone_close_failed", "camstat_down"} | BOOT_KINDS
 
 MARK_OFF = "===== PSU OFF ====="
 MARK_ON = "===== PSU ON ====="
@@ -103,7 +114,7 @@ class CameraState:
                 self._set("down", t, raw)
             return
         kind = hit[0]
-        if kind == "stream_started":
+        if kind in ("stream_started", "camstat_up"):
             self._set("streaming", t, raw)
         elif kind in STATE_DOWN_KINDS:
             self._set("down", t, raw)
