@@ -78,6 +78,9 @@ uv venv .venv && uv pip install --python .venv/bin/python -r requirements.txt
 ```sh
 .venv/bin/python -m hil psu status --bench benches/5C84388210-camera.json
 .venv/bin/python -m hil camplug --bench benches/5C84388210-camera.json --rounds 20 --label after-fix
+# 乱插（E2）：每轮第一次上电后再随机断电/上电 2 次（上电 0.2–3 s 后断 0.3–1.5 s），
+# 让掉线落在枚举、开流、建编码器、连推流等中间态；统计以最后一次上电为准
+.venv/bin/python -m hil camplug --bench benches/5C84388210-camera.json --rounds 100 --chaos 2 --label chaos
 # 可调：--off 3（断电秒数）--on-wait 40（上电后观察秒数）--pre-wait 20（断电前确认在流最多等多久）
 #       --abort-after 3（连续这么多轮 offline/crash/not_ready/rig_fault 就中止）--keep-all-logs
 .venv/bin/python -m hil summary results/<运行目录>

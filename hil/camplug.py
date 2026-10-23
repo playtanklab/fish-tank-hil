@@ -20,6 +20,7 @@ import csv
 import json
 import queue
 import threading
+import random
 import time
 from collections import Counter
 from dataclasses import dataclass
@@ -35,7 +36,7 @@ CSV_FIELDS = [
     "round", "started", "result", "detail", "pre", "drop_ms", "reboot_ms", "attach_ms", "uvc_ms",
     "stream_ms", "enc_ms", "publish_ms", "usb_err", "urb_err", "teardown_unsafe", "restart_req",
     "budget_boot", "budget_exhausted", "reset_reason", "reboots", "stream_starts", "fw",
-    "serial_lost", "crash", "amp_before", "amp", "events", "log",
+    "serial_lost", "crash", "amp_before", "amp", "chaos", "events", "log",
 ]
 # 连续出现这么多轮就中止：摄像头卡在离线（如恢复预算耗尽）后继续跑没有意义
 FAIL_RESULTS = ("offline", "crash", "not_ready", "rig_fault")
@@ -66,6 +67,10 @@ class CamTiming:
     on_wait_s: float = 40.0       # 上电后观察秒数（整机重启后出流约要 10 s，推流再晚几秒）
     pre_wait_s: float = 20.0      # 断电前最多等多久确认在流
     stream_settle_s: float = 10.0  # 看到出流后至少再等这么久才断电，让推流连上
+    # 乱插（E2）：每轮第一次上电后再随机断电/上电这么多次，让掉线落在枚举、开流、
+    # 建编码器、连推流等中间态。时长随机：上电后等 0.2–3.0 s 再断，断 0.3–1.5 s。
+    # 统计以最后一次上电为准；最后一次断电前的事件都算在“本轮之前”。
+    chaos_pulses: int = 0
 
 
 class ConsoleReader(threading.Thread):
@@ -182,6 +187,19 @@ def _cam_round(psu: ZebraPsu, s: Session, first: bool) -> dict:
     s.pump(t_off + s.t.off_s)           # 只读串口；输出关着时不发任何电源命令
     t_on = s.mark(MARK_ON)
     psu.set_output(True)
+    chaos = []
+    for _ in range(s.t.chaos_pulses):
+        on_for = random.uniform(0.2, 3.0)
+        off_for = random.uniform(0.3, 1.5)
+        s.pump(t_on + on_for)
+        t_off = s.mark(MARK_OFF)
+        psu.set_output(False)
+        s.pump(t_off + off_for)         # 输出关着时同样不发任何电源命令
+        t_on = s.mark(MARK_ON)
+        psu.set_output(True)
+        chaos.append(f"{on_for:.2f}/{off_for:.2f}")
+    if chaos:
+        row["chaos"] = " ".join(chaos)
     s.pump(t_on + s.t.on_wait_s)
     try:
         row["amp"] = psu.measure()[1]

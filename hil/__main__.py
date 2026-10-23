@@ -63,7 +63,8 @@ def cmd_camplug(args) -> None:
     bench = CameraBench.load(args.bench)
     label = args.label or Path(args.bench).stem
     out = Path(args.out) / f"{datetime.now():%Y%m%d-%H%M%S}-{label}"
-    t = CamTiming(off_s=args.off, on_wait_s=args.on_wait, pre_wait_s=args.pre_wait)
+    t = CamTiming(off_s=args.off, on_wait_s=args.on_wait, pre_wait_s=args.pre_wait,
+                  chaos_pulses=args.chaos)
     try:
         run_camplug(bench, args.rounds, out, t, args.keep_all_logs, args.abort_after)
     finally:
@@ -143,6 +144,8 @@ def main() -> None:
     sc.add_argument("--off", type=float, default=3.0, help="每轮摄像头断电秒数")
     sc.add_argument("--on-wait", type=float, default=40.0, help="上电后观察秒数")
     sc.add_argument("--pre-wait", type=float, default=20.0, help="断电前最多等多久确认摄像头在出流")
+    sc.add_argument("--chaos", type=int, default=0,
+                    help="乱插：每轮上电后再随机断电/上电 N 次（落在枚举/开流等中间态）")
     sc.add_argument("--out", default="results")
     sc.add_argument("--keep-all-logs", action="store_true", help="recovered 的轮次也保留日志")
     sc.add_argument("--abort-after", type=int, default=3,
