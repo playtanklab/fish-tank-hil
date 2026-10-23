@@ -1,4 +1,4 @@
-"""命令行入口：python -m hil {psu,run,soak,discover,summary} ..."""
+"""命令行入口：python -m hil {psu,run,soak,camplug,discover,summary} ..."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from .camplug import CamTiming, CameraBench, is_camplug_dir, run_camplug, summarize_camplug
 from .runner import Bench, Timing, discover, run
 from .soak import format_result, run_soak
 from .summary import summarize
@@ -58,6 +59,22 @@ def cmd_soak(args) -> None:
     print(text)
 
 
+def cmd_camplug(args) -> None:
+    bench = CameraBench.load(args.bench)
+    label = args.label or Path(args.bench).stem
+    out = Path(args.out) / f"{datetime.now():%Y%m%d-%H%M%S}-{label}"
+    t = CamTiming(off_s=args.off, on_wait_s=args.on_wait, pre_wait_s=args.pre_wait)
+    run_camplug(bench, args.rounds, out, t, args.keep_all_logs, args.abort_after)
+    text = summarize_camplug(out)
+    (out / "summary.txt").write_text(text + "\n", encoding="utf-8")
+    print(text)
+
+
+def cmd_summary(args) -> None:
+    d = Path(args.dir)
+    print(summarize_camplug(d) if is_camplug_dir(d) else summarize(d))
+
+
 def cmd_discover(args) -> None:
     tree, raw = discover(args.psu_port, args.console_port)
     log = Path(args.out) / f"{datetime.now():%Y%m%d-%H%M%S}-discover.log"
@@ -81,7 +98,7 @@ def cmd_discover(args) -> None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(prog="hil", description="CH370 USB 断电台")
+    p = argparse.ArgumentParser(prog="hil", description="CH370 USB 断电台 / 摄像头插拔台")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sp = sub.add_parser("psu", help="查看或开关电源输出")
@@ -115,6 +132,19 @@ def main() -> None:
     sk.add_argument("--out", default="results")
     sk.set_defaults(func=cmd_soak)
 
+    sc = sub.add_parser("camplug", help="主板保持供电，只开关摄像头供电，统计 UVC 热插拔反应")
+    sc.add_argument("--bench", required=True, help="摄像头台架文件（带 camera 字段）")
+    sc.add_argument("--rounds", type=int, required=True)
+    sc.add_argument("--label")
+    sc.add_argument("--off", type=float, default=3.0, help="每轮摄像头断电秒数")
+    sc.add_argument("--on-wait", type=float, default=40.0, help="上电后观察秒数")
+    sc.add_argument("--pre-wait", type=float, default=20.0, help="断电前最多等多久确认摄像头在出流")
+    sc.add_argument("--out", default="results")
+    sc.add_argument("--keep-all-logs", action="store_true", help="recovered 的轮次也保留日志")
+    sc.add_argument("--abort-after", type=int, default=3,
+                    help="连续这么多轮 offline/crash/not_ready/rig_fault 就中止(0 = 不中止)")
+    sc.set_defaults(func=cmd_camplug)
+
     sd = sub.add_parser("discover", help="断电上电一次，抓当前拓扑，可写成台架文件")
     sd.add_argument("--psu-port", required=True)
     sd.add_argument("--console-port", required=True)
@@ -126,7 +156,7 @@ def main() -> None:
 
     ss = sub.add_parser("summary", help="重新汇总一次运行")
     ss.add_argument("dir")
-    ss.set_defaults(func=lambda a: print(summarize(Path(a.dir))))
+    ss.set_defaults(func=cmd_summary)
 
     args = p.parse_args()
     args.func(args)

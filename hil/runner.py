@@ -41,7 +41,8 @@ class Bench:
     @classmethod
     def load(cls, path: str | Path) -> "Bench":
         d = json.loads(Path(path).read_text(encoding="utf-8"))
-        exp = [Expected(e["path"], e["vidpid"], e.get("name", "")) for e in d["devices"]]
+        # 摄像头台架没有 devices，psu 子命令也能用它开关、查读数
+        exp = [Expected(e["path"], e["vidpid"], e.get("name", "")) for e in d.get("devices", [])]
         return cls(d["name"], d["psu_port"], d["console_port"], float(d["volt"]), exp)
 
 

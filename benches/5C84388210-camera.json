@@ -1,0 +1,7 @@
+{
+  "name": "5C84388210 UVC 摄像头插拔（电源只给摄像头供电）",
+  "psu_port": "/dev/serial/by-id/usb-1a86_USB_UART-LPT-if00-port0",
+  "console_port": "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5C84388210-if00",
+  "volt": 5.0,
+  "camera": {"vidpid": "13d3:784b", "name": "UVC 摄像头（P4 原生 USB HS）"}
+}
