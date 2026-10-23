@@ -1,0 +1,72 @@
+# 2026-10-23 板 5C84388210 主固件 2.4.2.5 实机抓取：摄像头断电约 3.3 s，主板受控整机重启后恢复出流。
+# 只保留摄像头/USB/重启相关行；[秒] 是主机时间。
+[    5.220] ===== PSU OFF =====
+[    5.410] W (52942) uvc-isoc: usb err 1
+[    5.410] W (52942) uvc-isoc: usb err 1
+[    5.410] W (52942) uvc-isoc: usb err 1
+[    5.410] W (52942) uvc-isoc: usb err 1
+[    5.410] W (52942) uvc-isoc: usb err 1
+[    5.410] W (52944) uvc-isoc: usb err 1
+[    5.410] W (52947) uvc-isoc: usb err 1
+[    5.410] W (52950) uvc-isoc: usb err 1
+[    5.410] W (52952) uvc-isoc: usb err 1
+[    5.410] W (52955) uvc-isoc: usb err 1
+[    5.410] W (52958) uvc-isoc: usb err 1
+[    5.410] W (52961) uvc-isoc: usb err 1
+[    5.410] W (52963) uvc-isoc: usb err 1
+[    5.410] W (52966) uvc-isoc: usb err 1
+[    5.410] W (52969) uvc-isoc: usb err 1
+[    5.410] E (52971) USB HOST: Enqueue URB error: ESP_ERR_INVALID_STATE
+[    5.410] W (52977) uvc-isoc: usb err 1
+[    5.410] W (52979) uvc-isoc: usb err 1
+[    5.410] W (52982) uvc-isoc: usb err 1
+[    5.410] W (52985) uvc-isoc: usb err 1
+[    5.410] E (52987) USB HOST: Enqueue URB error: ESP_ERR_INVALID_STATE
+[    5.410] W (52993) uvc-isoc: usb err 1
+[    5.410] W (52995) uvc-isoc: usb err 1
+[    5.410] W (52998) uvc-isoc: usb err 1
+[    5.410] W (53001) uvc-isoc: usb err 1
+[    5.410] E (53004) USB HOST: Enqueue URB error: ESP_ERR_INVALID_STATE
+[    5.410] W (53009) uvc-isoc: usb err 1
+[    5.410] W (53012) uvc-isoc: usb err 1
+[    5.410] W (53014) uvc-isoc: usb err 1
+[    5.410] W (53017) uvc-isoc: usb err 1
+[    5.410] E (53020) USB HOST: Enqueue URB error: ESP_ERR_INVALID_STATE
+[    5.410] E (53026) UvcCamera: USB teardown unsafe; camera offline, recovery required (reason=4)
+[    5.410] E (53034) SmartFishtankBoard: camera safe offline; USB recovery reason=4, retained resources
+[    5.410] E (53056) SmartFishtankBoard: controlled whole-device restart for USB camera recovery (1/2)
+[    5.410] I (53066) Application: Rebooting...
+[    6.610] ESP-ROM:esp32p4-eco7-20260109
+[    6.610] Build:Jan  9 2026
+[    6.610] rst:0xc (SW_CPU_RESET),boot:0x30f (SPI_FAST_FLASH_BOOT)
+[    7.210] I (563) app_init: App version:      2.4.2.5
+[    7.410] I (854) SmartFishtankBoard: USB camera recovery budget used=1/2
+[    8.550] ===== PSU ON =====
+[    8.810] I (2226) UsbHostService: started, hub_multi_level=1
+[    8.810] I (2226) UsbDeviceInventory: started
+[    8.810] I (2226) UvcCamera: client driver installed (no device yet)
+[    9.410] I (2895) UsbDeviceInventory: USB attach addr=2 vid:pid=13d3:784b class=ef (miscellaneous)
+[    9.410] I (2895) UvcCamera: UVC connected: dev_addr=2 stream_index=0 frames=8
+[    9.410] I (2898) UvcCamera: device pool += addr=2 si=0 (size=1)
+[    9.410] I (2903) UvcCamera: active camera -> addr=2 (fallback)
+[    9.810] I (3245) UvcCamera: SelectDevice: accepted addr=2 (switch is async)
+[   18.420] I (11826) UvcCamera:   cand[0] 1280x720 MJPEG fps30=0 best=20.0
+[   18.420] I (11826) UvcCamera:   cand[1] 1280x712 MJPEG fps30=0 best=20.0
+[   18.420] I (11826) UvcCamera:   cand[2] 640x480 MJPEG fps30=0 best=20.0
+[   18.420] I (11831) UvcCamera:   cand[3] 640x472 MJPEG fps30=0 best=20.0
+[   18.420] I (11837) UvcCamera:   cand[4] 1280x720 other fps30=0 best=5.0
+[   18.420] I (11843) UvcCamera:   cand[5] 1280x712 other fps30=0 best=15.0
+[   18.420] I (11848) UvcCamera:   cand[6] 640x480 other fps30=0 best=20.0
+[   18.420] I (11854) UvcCamera:   cand[7] 640x472 other fps30=0 best=20.0
+[   18.420] I (11859) UvcCamera: L2 selected 1280x720@20fps MJPEG
+[   18.420] I (11869) uvc-control: Default format from camera: 1280x720@30.0FPS, fmt=1, frame_size=1843200, payload=3060
+[   18.420] I (11882) uvc: Allocating 4 USB transfers for ISOC. Each: 12240 bytes, 4 ISOC packets, 3060 MPS
+[   18.420] I (11887) uvc-control: Default format from camera: 1280x720@20.0FPS, fmt=1, frame_size=1843200, payload=3060
+[   18.420] I (11933) UvcCamera: stream started (actual) 1280x720@20fps MJPEG [tier=L2]
+[   18.620] I (12033) UvcCamera: stream stopped
+[   18.620] I (12038) uvc-control: Default format from camera: 1280x720@20.0FPS, fmt=1, frame_size=1843200, payload=3060
+[   18.620] I (12047) uvc: Allocating 4 USB transfers for ISOC. Each: 12240 bytes, 4 ISOC packets, 3060 MPS
+[   18.620] I (12052) uvc-control: Default format from camera: 640x480@20.0FPS, fmt=1, frame_size=1843200, payload=3060
+[   18.620] I (12096) UvcCamera: stream started (actual) 640x480@20fps MJPEG [tier=manual]
+[   18.620] I (12156) H264Enc: streaming start view=front capture 640x480 enc 640x480@20fps
+[   25.630] I (19166) Rtmps: secure publish connected; waiting for IDR

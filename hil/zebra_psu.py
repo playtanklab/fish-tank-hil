@@ -64,9 +64,23 @@ class ZebraPsu:
                 buf.extend(chunk)
         return None
 
+    def _check_pending(self) -> None:
+        """清缓冲前先看一眼两条命令之间电源主动发来的东西：自己关机时会报“已关机”，不能丢掉。"""
+        pending = self._ser.read(self._ser.in_waiting) if self._ser.in_waiting else b""
+        if not pending:
+            return
+        text = pending.decode("gbk", errors="replace")
+        for line in text.splitlines():
+            if line.strip():
+                self.noise.append(line.strip())
+        if SHUTDOWN_TEXT in text:
+            self._output_on = None
+            raise PsuShutdown(f"电源在两条命令之间主动报“{SHUTDOWN_TEXT}”，需要人工长按旋钮开机")
+
     def _transact(self, cmd: str) -> str:
         """发一条命令，返回以 ``<命令名>:`` 开头的那一行冒号后的内容。"""
         name = cmd.split("=", 1)[0]
+        self._check_pending()
         self._ser.reset_input_buffer()
         self._ser.write(cmd.encode("ascii"))
         deadline = time.monotonic() + self._reply_timeout
