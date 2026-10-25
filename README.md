@@ -124,6 +124,39 @@ recovered 以外的轮次日志写入 `logs/`（每行 `[主机秒] 原始行`�
 2026-10-23 首次实机运行遇到过：关输出约 3 s 后电源对 `AT_OUTPUT=1` 完全没有回复（空闲也不发任何字节），
 摄像头保持断电，只能到电源面板上处理。原因未明；驱动现在会在发命令前检查电源主动发来的“已关机”。
 
+## 直播开播台（camlive）
+
+站在观众这一侧量“点开画面能不能出来、要多久、看着会不会断”。主板、摄像头、网络都不断电，
+只通过平台 API 建观看租约、用 aiortc 做 WHEP 读者收帧；推流链路故障用 `tcpchaos` 注入。
+
+```sh
+# 推流故障注入代理:设备连 47936,代理透明转发到 MediaMTX(本机联调把它的 RTMPS 端口挪到 127.0.0.1:47937)
+python3 -m hil tcpchaos --listen 0.0.0.0:47936 --upstream 127.0.0.1:47937 --control 127.0.0.1:47940
+# 开播压测;平台连接 JSON 放仓库外(地址、CA、账号文件、camera id、tcpchaos 控制口)
+uv run --no-project --with aiortc --with pyserial python -m hil camlive \
+  --platform ~/camlive.json --console /dev/serial/by-id/<主板串口> \
+  --plan cold:15,warm:15,edge:10,stall:10,reset:10,long:2 --shuffle --client admin
+python3 -m hil summary results/<运行目录>
+```
+
+平台连接 JSON：`{"api": "https://…", "ca": "<自签 CA 或 null>", "login_file": "<email=/password= 两行>",
+"camera_id": "cam_…", "resolve": {"主机名": "IP"}, "chaos_control": "127.0.0.1:47940"}`。
+
+场景：`cold`（上一轮释放后等 25 s，设备已停播）、`warm`（3 s 后再开，仍在推）、`edge`（10.5 s，
+撞上平台停播宽限）、`stall`（首帧后 10 s 让推流链路卡 `--stall` 秒）、`reset`（首帧后 10 s 重置推流 TCP）、
+`long`（连续看 `--long-hold` 秒）。`--client admin` 照搬 admin 后台播放器原逻辑，`admin2` 是修复后的播放器，
+`ideal` 是对照组。结果分类：`ok`、`slow`（首帧 > 10 s）、`open_timeout`（30 s 没首帧，即“加载不出来”）、
+`lease_error`，故障场景另记 `recovered`/`recover_timeout`。
+
+每轮记建租约到 ready、首帧耗时、WHEP 返回码、状态序列、帧率、播放中断流次数与总时长、故障恢复时间，
+以及同一时段的固件事件：推流连上/断开（含错误码）、会话申请失败、无槽位、编码器启动、码率回路变更与停推、
+最后一条 `LiveDiag`（推流状态/退避/丢帧/编码帧数/码率/MQTT 年龄）。规则在 `hil/camlive.py` 的 `RULES`，
+夹具 `tests/fixtures/live_*.log` 来自实机抓取。串口原始日志写在运行目录的 `console.log`。
+
+注意：`tcpchaos` 的 stall 要让设备真的感到阻塞，代理把接收缓冲压到 32 KB；即便如此，代理、内核和设备
+发送缓冲合计仍能吸收约 1 s（1.2 Mbps）到 3–4 s（400 kbps）的数据，短 stall 不会触发固件 2 s 发送超时。
+验证“断开 → 重连”路径用 `reset` 或 `--stall 8`。
+
 ## 许可证
 
 MIT，见 [LICENSE](LICENSE)。

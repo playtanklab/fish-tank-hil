@@ -1,0 +1,12 @@
+I (52264) CameraLive: live lease started (60s)
+I (52968) H264Enc: streaming start view=side capture 640x472 enc 640x464@20fps
+I (54901) Rtmps: secure publish connected; waiting for IDR
+I (77258) SmartFishtankBoard: Governor: bitrate=840000 paused=0 resume_hold_ms=30000 (mqtt connected=1 age_ms=2600)
+I (107815) SmartFishtankBoard: Governor: bitrate=588000 paused=0 resume_hold_ms=30000 (mqtt connected=1 age_ms=2998)
+I (138463) SmartFishtankBoard: Governor: bitrate=411600 paused=0 resume_hold_ms=30000 (mqtt connected=1 age_ms=3518)
+I (167002) SmartFishtankBoard: Governor: bitrate=400000 paused=0 resume_hold_ms=30000 (mqtt connected=1 age_ms=2626)
+I (197657) SmartFishtankBoard: Governor: bitrate=400000 paused=1 resume_hold_ms=30000 (mqtt connected=1 age_ms=3124)
+I (207742) Rtmps: reclaimed 1 socket(s) left open by the RTMP SDK
+I (58587) SmartFishtankBoard: LiveDiag: want=1 cam=3 pub=6 conn=1 backoff_ms=0 err=0 pubf=75 drop=0 reconn=0 send_ms=5 enc=1 encf=103 enc_err=0 sps_gen=1 paused=0 br=1200000 hold_ms=30000 mqtt=1 inflight=1 age_ms=4
+I (199433) SmartFishtankBoard: LiveDiag: want=1 cam=3 pub=6 conn=1 backoff_ms=0 err=0 pubf=2889 drop=0 reconn=0 send_ms=1 enc=1 encf=2917 enc_err=0 sps_gen=1 paused=1 br=400000 hold_ms=30000 mqtt=1 inflight=10 age_ms=4900
+W (207742) Rtmps: publish ended; reconnect with a new credential (error=0)
