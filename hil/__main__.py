@@ -79,8 +79,9 @@ def cmd_camlive(args) -> None:
     from .camlive import Timing, run_camlive
 
     t = Timing(open_timeout_s=args.open_timeout, hold_s=args.hold, long_hold_s=args.long_hold,
-               gap_cold_s=args.gap_cold, stall_s=args.stall)
-    run_camlive(args.platform, args.console, args.plan, args.client, Path(args.out), t, args.shuffle)
+               gap_cold_s=args.gap_cold, stall_s=args.stall, plug_off_s=args.plug_off)
+    run_camlive(args.platform, args.console, args.plan, args.client, Path(args.out), t, args.shuffle,
+                args.psu)
 
 
 def cmd_tcpchaos(args) -> None:
@@ -186,14 +187,16 @@ def main() -> None:
     sl.add_argument("--platform", required=True, help="平台连接 JSON(仓库外;见 hil/camlive.py PlatformConfig)")
     sl.add_argument("--console", help="主板串口(by-id 路径);不给就不读串口")
     sl.add_argument("--plan", default="cold:10,warm:10,edge:10",
-                    help="场景:轮数,逗号分隔;场景 cold/warm/edge/stall/reset/long")
-    sl.add_argument("--client", choices=["admin", "admin2", "admin3", "ideal"], default="admin")
+                    help="场景:轮数,逗号分隔;场景 cold/warm/edge/stall/reset/long/plug/plugcold/view")
+    sl.add_argument("--client", choices=["admin", "admin2", "admin3", "admin4", "ideal"], default="admin")
     sl.add_argument("--shuffle", action="store_true", help="打乱场景顺序")
     sl.add_argument("--open-timeout", type=float, default=30.0)
     sl.add_argument("--hold", type=float, default=15.0)
     sl.add_argument("--long-hold", type=float, default=300.0)
     sl.add_argument("--gap-cold", type=float, default=25.0)
     sl.add_argument("--stall", type=float, default=3.0)
+    sl.add_argument("--psu", help="只给摄像头供电的 ZeBra 电源串口(by-id 路径;plug/plugcold 场景需要)")
+    sl.add_argument("--plug-off", type=float, default=3.0, help="plug/plugcold 摄像头断电秒数")
     sl.add_argument("--out", default="results")
     sl.set_defaults(func=cmd_camlive)
 

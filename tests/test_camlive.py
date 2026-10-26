@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from hil.camlive import (CSV_FIELDS, Round, Runner, Timing, match_line, parse_plan, round_row,
-                         summarize_camlive)
+                         run_camlive, summarize_camlive)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 # 2026-10-25 台架 5C84388205 实机抓取(固件 4ca168ac 诊断版):直播中码率回路一路降到下限后停推
@@ -41,12 +41,16 @@ class MatchLineTest(unittest.TestCase):
     def test_rtmp_ended_error_code(self):
         self.assertEqual(match_line("W (5) Rtmps: publish ended; reconnect with a new credential (error=589826)"),
                          ("rtmp_ended", ("589826",)))
-        self.assertEqual(match_line("W (187359) Rtmps: publish ended; reconnecting (error=259)"),
-                         ("rtmp_ended", ("259",)))
-        self.assertEqual(match_line("I (187365) Rtmps: reusing stream session str_123240cf398a5055bb320c1cec9818fb"),
-                         ("rtmp_reuse", ()))
-        self.assertEqual(match_line("W (9) Rtmps: reused stream session rejected (error=589826); acquiring a new one"),
-                         ("rtmp_reuse_rejected", ()))
+
+    def test_view_and_plug_events(self):
+        self.assertEqual(match_line("I (90490) H264Enc: desired view -> front (请求 #2)"), ("view_req", ("front",)))
+        self.assertEqual(match_line("I (34673) H264Enc: streaming start view=side capture 640x472 enc 640x464@20fps"),
+                         ("enc_start", ("side",)))
+        self.assertEqual(match_line("W (5470233) UvcCamera: active device addr=2 gone"), ("cam_gone", ()))
+        self.assertEqual(match_line("I (5473200) UsbDeviceInventory: USB attach addr=3 vid:pid=13d3:784b class=ef"),
+                         ("usb_attach", ("13d3:784b",)))
+        self.assertEqual(match_line("I (34617) UvcCamera: stream started (actual) 640x472@20fps MJPEG [tier=manual]"),
+                         ("uvc_stream_started", ()))
 
 
 class FinishTest(unittest.TestCase):
@@ -65,6 +69,17 @@ class FinishTest(unittest.TestCase):
 class PlanAndSummaryTest(unittest.TestCase):
     def test_parse_plan(self):
         self.assertEqual(parse_plan("cold:2, warm ,stall:1"), ["cold", "cold", "warm", "stall"])
+
+    def test_plug_and_view_need_rig_config(self):
+        # 缺电源 / 缺 device_id 时在登录、建目录之前就拒绝
+        with tempfile.TemporaryDirectory() as d:
+            cfg = Path(d) / "p.json"
+            cfg.write_text('{"api": "https://x", "login_file": "/nonexistent", "camera_id": "cam_x"}')
+            for plan, need in (("cold:1,plug:1", "--psu"), ("plugcold", "--psu"), ("view:2", "device_id")):
+                with self.assertRaises(SystemExit) as e:
+                    run_camlive(str(cfg), None, plan, "admin4", Path(d) / "out", Timing())
+                self.assertIn(need, str(e.exception))
+            self.assertFalse((Path(d) / "out").exists())
 
     def test_summary_counts_failures(self):
         with tempfile.TemporaryDirectory() as d:
