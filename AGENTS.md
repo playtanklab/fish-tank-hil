@@ -17,6 +17,8 @@
 | `hil/summary.py` | 汇总缺失率、收敛时间分布、缺失分布 |
 | `hil/camlog.py` | 摄像头插拔台的日志匹配规则（集中在 `RULES`）和单轮分类，固件改措辞只改这里 |
 | `hil/camplug.py` | 摄像头插拔台：后台读串口、每轮断电前确认在流、开关摄像头供电、`rounds.csv`/汇总 |
+| `hil/camlive.py` | 直播开播台：平台租约 + aiortc WHEP 读者，量开播成功率/首帧/断流恢复，固件事件归轮（`RULES`） |
+| `hil/tcpchaos.py` | 推流故障注入代理：透明转发设备 RTMPS，按命令 stall / reset / blackhole |
 | `benches/*.json` | 台架：串口 by-id 路径、设定电压、期望设备；摄像头台架用 `camera.vidpid` 代替 `devices` |
 
 ## 约束
@@ -27,6 +29,7 @@
 - 日志格式跟随固件 `usb_tree_ch370.cc`；改解析时同步更新 `tests/fixtures/`，夹具只能来自实机抓取，并且只截取 CH370 相关行。
 - 摄像头插拔台的夹具（`tests/fixtures/cam_*.log`）同样来自实机抓取，只截取摄像头/USB/重启相关行，去掉网络地址、token、tank id、芯片 ID 等标识。
 - `results/` 和任何原始串口日志不进仓库（公开仓库，日志里可能有网络和设备标识信息）。
+- camlive 的平台连接 JSON（地址、账号文件路径、camera id）放仓库外，不进仓库。
 - 跑台架会反复给被测板断电，开跑前确认板子上没有正在进行、不能被打断的操作（OTA、烧录、配网）。
 
 ## 验证
