@@ -41,6 +41,12 @@ class MatchLineTest(unittest.TestCase):
     def test_rtmp_ended_error_code(self):
         self.assertEqual(match_line("W (5) Rtmps: publish ended; reconnect with a new credential (error=589826)"),
                          ("rtmp_ended", ("589826",)))
+        self.assertEqual(match_line("W (187359) Rtmps: publish ended; reconnecting (error=259)"),
+                         ("rtmp_ended", ("259",)))
+        self.assertEqual(match_line("I (187365) Rtmps: reusing stream session str_123240cf398a5055bb320c1cec9818fb"),
+                         ("rtmp_reuse", ()))
+        self.assertEqual(match_line("W (9) Rtmps: reused stream session rejected (error=589826); acquiring a new one"),
+                         ("rtmp_reuse_rejected", ()))
 
 
 class FinishTest(unittest.TestCase):

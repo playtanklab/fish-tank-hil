@@ -11,6 +11,8 @@
   其他→2 s 用**同一个地址**重连；WHEP 建上但一直没有帧时不会主动放弃。复现用户看到的“加载不出来”。
 - ``admin2``：修复后的 admin 播放器(fish-tank-platform fix/live-reliability)：ready 后也每 5 s 查状态；
   401/403/404 先刷新状态再 1 s 重连；首帧 8 s 没来、播放中 6 s 没有新帧都刷新状态后重连。
+- ``admin3``：admin2 + 开播提速(fish-tank-platform fix/live-reliability 之后)：建租约后头 15 s 每 0.5 s
+  查一次状态，之后每 1.5 s。
 - ``ideal``：对照组。首帧 6 s 没来、或播放中断流 2 s 就立即重查租约状态，地址变了马上换。
 
 场景(``--plan`` 里的名字)：
@@ -75,7 +77,10 @@ RULES: list[tuple[str, re.Pattern]] = [(k, re.compile(p)) for k, p in [
     ("no_slot", r"captured camera has no mapped physical slot"),
     ("session_fail", r"session request failed err=(\S+) status=(-?\d+)"),
     ("rtmp_connected", r"Rtmps: secure publish connected"),
-    ("rtmp_ended", r"Rtmps: publish ended; reconnect with a new credential \(error=(\d+)\)"),
+    # 2026-10-26 固件改为同场重连复用会话后措辞变成 "reconnecting",两种都认
+    ("rtmp_ended", r"Rtmps: publish ended; reconnect(?:ing| with a new credential) \(error=(\d+)\)"),
+    ("rtmp_reuse", r"Rtmps: reusing stream session"),
+    ("rtmp_reuse_rejected", r"Rtmps: reused stream session rejected"),
     ("rtmp_switch", r"Rtmps: camera switched; republishing"),
     ("rtmp_sockets", r"Rtmps: reclaimed (\d+) socket"),
     ("live_diag", r"LiveDiag: (.*)$"),
@@ -306,6 +311,7 @@ CSV_FIELDS = [
     "round", "scenario", "client", "started", "result", "detail", "lease_http", "ready_s", "first_frame_s",
     "whep_attempts", "whep_codes", "states", "frames", "fps", "max_gap_s", "stalls", "stall_total_s",
     "fault", "recover_s", "url_changes", "fw_rtmp_connected", "fw_rtmp_ended", "fw_rtmp_errors",
+    "fw_rtmp_reuse", "fw_rtmp_reuse_rejected",
     "fw_session_fail", "fw_no_slot", "fw_enc_start", "fw_enc_enter_fail", "fw_reboot", "fw_crash",
     "internal_min", "fw_gov_pause", "fw_gov_min_br", "fw_last_diag", "events",
 ]
@@ -363,7 +369,8 @@ class Runner:
         rec = Round(idx, scenario, self.client, datetime.now().strftime("%H:%M:%S"))
         t0 = time.monotonic()
         ideal = self.client == "ideal"
-        admin2 = self.client == "admin2"
+        admin3 = self.client == "admin3"
+        admin2 = self.client == "admin2" or admin3
 
         def mark(what: str) -> None:
             rec.timeline.append(f"{time.monotonic() - t0:6.2f} {what}")
@@ -393,7 +400,10 @@ class Runner:
 
         note(status)
         next_renew = t0 + status.get("renew_interval_ms", 20000) / 1000
-        next_poll = t0 + 1.5
+        def pending_poll_s(now: float) -> float:
+            return 0.5 if admin3 and now - t0 < 15 else 1.5
+
+        next_poll = t0 + pending_poll_s(t0)
         whep: Whep | None = None
         frames: list[float] = []      # 跨重连累计
         cur_url: str | None = None
@@ -428,7 +438,7 @@ class Runner:
                     # admin:ready 之前 1.5 s 轮询;ready 之后不再轮询(只靠续约)。ideal 一直轮询。
                     if (not ready or ideal) and now >= next_poll:
                         await refresh()
-                        next_poll = time.monotonic() + 1.5
+                        next_poll = time.monotonic() + pending_poll_s(now)
                         continue
                     if not ready or now < retry_at:
                         continue
@@ -573,6 +583,7 @@ def round_row(r: Round) -> dict:
         "stall_total_s": r.stall_total_s, "fault": r.fault, "recover_s": r.recover_s,
         "url_changes": r.url_changes, "fw_rtmp_connected": fw.get("rtmp_connected", 0),
         "fw_rtmp_ended": fw.get("rtmp_ended", 0), "fw_rtmp_errors": fw.get("rtmp_errors", ""),
+        "fw_rtmp_reuse": fw.get("rtmp_reuse", 0), "fw_rtmp_reuse_rejected": fw.get("rtmp_reuse_rejected", 0),
         "fw_session_fail": fw.get("session_fail", 0), "fw_no_slot": fw.get("no_slot", 0),
         "fw_enc_start": fw.get("enc_start", 0), "fw_enc_enter_fail": fw.get("enc_enter_fail", 0),
         "fw_reboot": fw.get("rom", 0), "fw_crash": fw.get("crash", 0),

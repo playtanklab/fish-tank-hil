@@ -187,7 +187,7 @@ def main() -> None:
     sl.add_argument("--console", help="主板串口(by-id 路径);不给就不读串口")
     sl.add_argument("--plan", default="cold:10,warm:10,edge:10",
                     help="场景:轮数,逗号分隔;场景 cold/warm/edge/stall/reset/long")
-    sl.add_argument("--client", choices=["admin", "admin2", "ideal"], default="admin")
+    sl.add_argument("--client", choices=["admin", "admin2", "admin3", "ideal"], default="admin")
     sl.add_argument("--shuffle", action="store_true", help="打乱场景顺序")
     sl.add_argument("--open-timeout", type=float, default=30.0)
     sl.add_argument("--hold", type=float, default=15.0)
