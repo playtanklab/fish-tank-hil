@@ -49,7 +49,7 @@ class SoakMonitorTest(unittest.TestCase):
     def test_reattach_with_new_address_flags_addr_new(self):
         m = booted()
         m.feed_line("I (300000) UsbTreeCh370: 热拔出: hub#3 端口2 设备移除,回收地址")
-        m.feed_line("I (301000) UsbTreeCh370: 热插入: hub#3 端口2 → addr=15 2402:5601 'PUMP-CHAMBER'")
+        m.feed_line("I (301000) UsbTreeCh370: 热插入: hub#3 端口2 → addr=15 2402:5601 'PUMP-BAY'")
         m.feed_line("I (301005) Ch370Bus: ch370 attach: addr=15 vid=2402 pid=5601")
         kinds = [e["kind"] for e in m.failures()]
         self.assertEqual(kinds, ["topology", "topology", "addr_new"])
@@ -58,7 +58,7 @@ class SoakMonitorTest(unittest.TestCase):
 
     def test_ghost_device_is_extra(self):
         m = booted()
-        m.feed_line("I (300000) UsbTreeCh370: 热插入: hub#2 端口1 → addr=15 2402:5605 'SPOTLIGHT'")
+        m.feed_line("I (300000) UsbTreeCh370: 热插入: hub#2 端口1 → addr=15 2402:5605 'SPOTLIGHT-3K6K'")
         self.assertEqual(m.status()["extra"], ["root.6.1"])
         self.assertEqual([e["kind"] for e in m.failures()], ["topology"])
 

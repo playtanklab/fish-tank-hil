@@ -3,6 +3,7 @@
   "psu_port": "/dev/serial/by-id/usb-1a86_USB_UART-LPT-if00-port0",
   "console_port": "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5C84388205-if00",
   "volt": 5.0,
+  "names_note": "设备 name 原为 hil discover 实机抓取的 3.x iProduct,2026-10-29 按协议 4.0.0 manifest/identity-frozen.yaml 手改为新 iProduct(未连真板重抓;比对只看 path 与 VID:PID,PID 不变)。root.6.4 的 MAIN-LIGHT-4K5K(type 0x0B)在 4.0.0 退役、没有新身份,保留原记录;该板重刷或拆下后用 hil discover 重新生成本文件",
   "devices": [
     {
       "path": "root",
@@ -17,7 +18,7 @@
     {
       "path": "root.5",
       "vidpid": "2402:5607",
-      "name": "FOREGROUND-LIGHT-24"
+      "name": "AMBIENT-LIGHT-24"
     },
     {
       "path": "root.6",
@@ -27,7 +28,7 @@
     {
       "path": "root.6.2",
       "vidpid": "2402:5605",
-      "name": "SPOTLIGHT"
+      "name": "SPOTLIGHT-3K6K"
     },
     {
       "path": "root.6.3",
@@ -42,17 +43,17 @@
     {
       "path": "root.6.5",
       "vidpid": "2402:5605",
-      "name": "SPOTLIGHT"
+      "name": "SPOTLIGHT-3K6K"
     },
     {
       "path": "root.6.6",
       "vidpid": "2402:5612",
-      "name": "NUTRIENT-DOSER"
+      "name": "LIQUID-DOSER"
     },
     {
       "path": "root.6.7",
       "vidpid": "2402:5605",
-      "name": "SPOTLIGHT"
+      "name": "SPOTLIGHT-3K6K"
     },
     {
       "path": "root.7",
@@ -62,17 +63,17 @@
     {
       "path": "root.7.2",
       "vidpid": "2402:5601",
-      "name": "PUMP-CHAMBER"
+      "name": "PUMP-BAY"
     },
     {
       "path": "root.7.4",
       "vidpid": "2402:560a",
-      "name": "MAIN-LIGHT-3K6K"
+      "name": "DAYLIGHT-3K6K"
     },
     {
       "path": "root.7.6",
       "vidpid": "2402:5602",
-      "name": "WATER-CHANGER"
+      "name": "WATER-CHANGE"
     }
   ]
 }

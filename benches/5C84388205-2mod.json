@@ -3,11 +3,12 @@
   "psu_port": "/dev/serial/by-id/usb-1a86_USB_UART-LPT-if00-port0",
   "console_port": "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5C84388205-if00",
   "volt": 5.0,
+  "names_note": "设备 name 原为 2026-10-17 实机抓取的 3.x iProduct,2026-10-29 按协议 4.0.0 manifest/identity-frozen.yaml 手改为新 iProduct(未连真板重抓;比对只看 path 与 VID:PID,PID 不变)",
   "devices": [
     {"path": "root", "vidpid": "1a86:809e", "name": "USB2.0 HUB"},
     {"path": "root.6", "vidpid": "1a86:809e", "name": "USB2.0 HUB"},
     {"path": "root.7", "vidpid": "1a86:809e", "name": "USB2.0 HUB"},
-    {"path": "root.6.2", "vidpid": "2402:5605", "name": "SPOTLIGHT"},
-    {"path": "root.7.2", "vidpid": "2402:5601", "name": "PUMP-CHAMBER"}
+    {"path": "root.6.2", "vidpid": "2402:5605", "name": "SPOTLIGHT-3K6K"},
+    {"path": "root.7.2", "vidpid": "2402:5601", "name": "PUMP-BAY"}
   ]
 }

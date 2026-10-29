@@ -41,12 +41,21 @@ class Ch370LogTest(unittest.TestCase):
         for i in range(0, len(data), 7):
             t.feed(data[i:i + 7])
         self.assertEqual(t.devices, tree_from(data.decode()).devices)
+        # 夹具是 3.x 固件实机抓取(只能来自实机,不手改),iProduct 仍是旧名;4.0.0 起为 PUMP-BAY
         self.assertEqual(t.devices["root.7.2"].name, "PUMP-CHAMBER")
 
     def test_missing_device_reported(self):
-        text = "\n".join(l for l in FIXTURE.read_text().splitlines() if "PUMP-CHAMBER" not in l)
+        text = "\n".join(l for l in FIXTURE.read_text().splitlines() if "2402:5601" not in l)
         missing, _, _ = compare(tree_from(text + "\n"), EXPECTED)
         self.assertEqual([m.path for m in missing], ["root.7.2"])
+
+    def test_v4_product_name_parsed(self):
+        # 协议 4.0.0 起 iProduct = 固件名大写(manifest/identity-frozen.yaml),PID 不变
+        line = "I (5464) UsbTreeCh370: 热插入: hub#3 端口2 → addr=5 2402:5601 'PUMP-BAY'\n"
+        text = "\n".join(l for l in FIXTURE.read_text().splitlines() if "2402:5601" not in l)
+        tree = tree_from(text + "\n" + line)
+        self.assertEqual(tree.devices["root.7.2"].name, "PUMP-BAY")
+        self.assertEqual(compare(tree, EXPECTED)[0], [])
 
     def test_unplug_removes_subtree(self):
         text = FIXTURE.read_text() + "I (9000) UsbTreeCh370: 热拔出: hub#1 端口6 设备移除,回收地址\n"
